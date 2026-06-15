@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<title>TradieMate Lite</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--card:#1a1d27;--card2:#22263a;--border:#2e3350;
+  --orange:#f97316;--orange2:#ea580c;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;
+  --text:#f1f5f9;--muted:#64748b;--muted2:#94a3b8;
+  --radius:14px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;overflow:hidden;font-size:15px}
+
+/* ── SPLASH ── */
+#splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s}
+#splash.hide{opacity:0;pointer-events:none}
+.splash-logo{font-size:60px;margin-bottom:16px;animation:pulse 2s infinite}
+.splash-title{font-size:30px;font-weight:800;color:var(--orange)}
+.splash-tier{font-size:13px;font-weight:700;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+.splash-sub{font-size:12px;color:var(--muted);margin-top:10px;text-align:center;max-width:260px;line-height:1.5}
+.splash-bar{width:200px;height:3px;background:var(--border);border-radius:2px;margin-top:24px;overflow:hidden}
+.splash-prog{height:100%;background:var(--orange);border-radius:2px;animation:prog 1.8s ease-out forwards}
+@keyframes prog{from{width:0}to{width:100%}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+/* ── APP SHELL ── */
+#app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;background:var(--bg);flex-shrink:0;z-index:10}
+.topbar-logo{font-size:18px;font-weight:800;color:var(--orange)}
+.topbar-tier{font-size:9px;font-weight:700;background:var(--orange);color:#fff;padding:2px 6px;border-radius:4px;letter-spacing:.5px;margin-left:6px;vertical-align:middle}
+.topbar-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:var(--card);border:none;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.icon-btn:active{background:var(--card2)}
+
+/* ── UPGRADE BANNER ── */
+.upgrade-banner{background:linear-gradient(135deg,#1e1a0e,#292015);border:1px solid rgba(249,115,22,.3);border-radius:var(--radius-sm);margin:0 12px 8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.upgrade-banner-text{flex:1;font-size:12px;color:var(--muted2)}
+.upgrade-banner-text b{color:var(--orange)}
+.btn-upgrade{background:var(--orange);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+
+/* ── WEATHER ── */
+.weather-alert{background:linear-gradient(135deg,#92400e,#78350f);border:1px solid #d97706;border-radius:var(--radius-sm);margin:0 12px 8px;padding:10px 14px;display:none;flex-shrink:0}
+.weather-alert.visible{display:flex;align-items:center;gap:10px}
+.weather-alert.danger{background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:var(--red)}
+.wa-title{font-size:13px;font-weight:700;color:#fbbf24}.wa-detail{font-size:11px;color:#fde68a;margin-top:2px}
+
+/* ── SCREENS ── */
+.screens{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow-y:auto;padding:0 0 80px;display:none;-webkit-overflow-scrolling:touch}
+.screen.active{display:block}
+.screen-pad{padding-left:12px;padding-right:12px}
+
+/* ── NAV ── */
+.nav{position:absolute;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;padding:8px 0 max(8px,env(safe-area-inset-bottom));z-index:10;flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;border:none;background:none;color:var(--muted);font-size:10px;transition:color .2s}
+.nav-item.active{color:var(--orange)}
+.nav-icon{font-size:20px;line-height:1}
+
+/* ── CARDS / COMMON ── */
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid var(--border)}
+.sec-header{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 12px 10px}
+.sec-title{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.sec-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:16px 12px 8px}
+.pill-tabs{display:flex;gap:6px;padding:0 12px 12px;overflow-x:auto}
+.pill-tabs::-webkit-scrollbar{display:none}
+.pill-tab{padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.pill-tab.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-orange{background:rgba(249,115,22,.15);color:var(--orange)}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.empty{padding:32px 16px;text-align:center}
+.empty-icon{font-size:36px;margin-bottom:8px}
+.empty-text{font-size:14px;color:var(--muted)}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:14px;border:1px solid var(--border)}
+.stat-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.stat-value{font-size:22px;font-weight:800;margin:4px 0 2px;color:var(--orange)}
+.stat-value.green{color:var(--green)}.stat-value.blue{color:var(--blue)}.stat-value.red{color:var(--red)}
+.stat-sub{font-size:11px;color:var(--muted)}
+
+/* ── TIMER ── */
+.timer-card{background:var(--card);border-radius:var(--radius);padding:18px;margin:0 12px 16px;border:1px solid var(--border)}
+.timer-display{font-size:48px;font-weight:800;text-align:center;letter-spacing:2px;color:var(--orange);font-variant-numeric:tabular-nums;margin:12px 0}
+.timer-info{text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px}
+.timer-btns{display:flex;gap:8px}
+.timer-btn{flex:1;padding:14px;border-radius:var(--radius-sm);border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s}
+.timer-btn.start{background:var(--green);color:#fff}
+.timer-btn.pause{background:var(--blue);color:#fff}
+.timer-btn.stop{background:var(--red);color:#fff}
+.timer-job-sel{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:var(--radius-sm);font-size:14px;margin-bottom:8px;outline:none}
+
+/* ── FORM ── */
+.form-input{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:var(--radius-sm);font-size:14px;outline:none;transition:border .2s;margin-bottom:10px}
+.form-input:focus{border-color:var(--orange)}
+.form-select{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:var(--radius-sm);font-size:14px;outline:none;margin-bottom:10px}
+.form-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px;display:block}
+.form-section{font-size:12px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.btn-primary{width:100%;background:var(--orange);color:#fff;border:none;border-radius:var(--radius-sm);padding:14px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s}
+.btn-primary:active{background:var(--orange2)}
+.btn-sm{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;border:none;cursor:pointer}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted2)}
+
+/* ── LIST ITEMS ── */
+.list-item{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.list-item:last-child{border-bottom:none}
+.list-item:active{background:var(--card2)}
+.li-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.li-body{flex:1;min-width:0}
+.li-title{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.li-right{text-align:right;flex-shrink:0}
+.li-amount{font-size:14px;font-weight:700}
+.li-date{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── QUICK ACTIONS ── */
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 16px}
+.qa-btn{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 12px;cursor:pointer;text-align:left;transition:all .15s;display:flex;flex-direction:column;gap:4px}
+.qa-btn:active{background:var(--card2);border-color:var(--orange)}
+.qa-icon{font-size:24px}
+.qa-label{font-size:13px;font-weight:700;color:var(--text)}
+.qa-sub{font-size:11px;color:var(--muted)}
+
+/* ── AI CHAT (LIMITED) ── */
+.chat-area{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.45}
+.msg.user{background:var(--orange);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.ai{background:var(--card);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
+.chat-input-row{display:flex;gap:8px;padding:10px 12px;background:var(--bg);border-top:1px solid var(--border);flex-shrink:0}
+.chat-input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:20px;font-size:14px;outline:none}
+.chat-send-btn{width:40px;height:40px;border-radius:50%;background:var(--orange);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ai-limit-bar{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:8px 14px;margin:0 12px 8px;font-size:12px;color:var(--muted2);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+
+/* ── MAP ── */
+.map-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.map-badge:hover{border-color:var(--orange);color:var(--orange)}
+.active-badge{border-color:var(--green)!important;color:var(--green)!important}
+.connected-badge{border-color:var(--orange)!important;color:var(--orange)!important}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;border-top:1px solid var(--border)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 16px 12px;border-bottom:1px solid var(--border)}
+.modal-title{font-size:17px;font-weight:800}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:200;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;border:1px solid var(--border)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── LOCK OVERLAY ── */
+.lock-overlay{position:absolute;inset:0;background:rgba(15,17,23,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:50;border-radius:var(--radius);padding:24px;text-align:center}
+.lock-icon{font-size:40px;margin-bottom:12px}
+.lock-title{font-size:17px;font-weight:800;margin-bottom:8px}
+.lock-text{font-size:13px;color:var(--muted2);line-height:1.5;margin-bottom:20px}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">🔧</div>
+  <div class="splash-title">TradieMate <span style="color:var(--muted2)">Lite</span></div>
+  <div class="splash-tier">YOUR TRADE, SIMPLIFIED</div>
+  <div class="splash-sub">Jobs · Invoices · Maps · Weather</div>
+  <div class="splash-bar"><div class="splash-prog"></div></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-logo">TradieMate <span class="topbar-tier">LITE</span></div>
+      <div class="topbar-sub" id="topbar-sub">Loading...</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div id="weather-mini" style="font-size:20px;cursor:pointer" onclick="showScreen('dash')">🌤</div>
+      <button class="icon-btn" onclick="showScreen('settings')">⚙️</button>
+    </div>
+  </div>
+
+  <!-- WEATHER ALERT -->
+  <div class="weather-alert" id="weather-alert">
+    <div style="font-size:24px">⚠️</div>
+    <div class="wa-text">
+      <div class="wa-title" id="wa-title">Weather Alert</div>
+      <div class="wa-detail" id="wa-detail">Check conditions before heading out</div>
+    </div>
+  </div>
+
+  <!-- UPGRADE BANNER (shown contextually) -->
+  <div class="upgrade-banner" id="upgrade-banner" style="display:none">
+    <div class="upgrade-banner-text" id="upgrade-text"><b>Upgrade to Solo</b> to unlock this feature</div>
+    <button class="btn-upgrade" onclick="window.open('https://amack-cpu.github.io/Trademate-/','_blank')">Upgrade →</button>
+  </div>
+
+  <!-- SCREENS -->
+  <div class="screens">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="screen active screen-pad" id="screen-dash" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title" id="dash-greeting">Good morning 👋</div>
+          <div class="sec-sub" id="dash-date">Loading...</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value" id="dash-revenue">$0</div>
+          <div class="stat-sub" id="dash-rev-sub">0 invoices</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Unpaid</div>
+          <div class="stat-value red" id="dash-unpaid">$0</div>
+          <div class="stat-sub" id="dash-unpaid-sub">0 outstanding</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Jobs This Month</div>
+          <div class="stat-value blue" id="dash-jobs">0</div>
+          <div class="stat-sub">logged</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Expenses</div>
+          <div class="stat-value green" id="dash-expenses">$0</div>
+          <div class="stat-sub">this month</div>
+        </div>
+      </div>
+
+      <!-- Timer -->
+      <div class="timer-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:14px;font-weight:700">⏱ Job Timer</div>
+          <span class="badge badge-orange" id="timer-status-badge">Stopped</span>
+        </div>
+        <select class="timer-job-sel" id="timer-client-sel">
+          <option value="">Select client (optional)</option>
+        </select>
+        <div class="timer-display" id="timer-display">00:00:00</div>
+        <div class="timer-info" id="timer-info">Ready to start</div>
+        <div class="timer-btns">
+          <button class="timer-btn start" id="timer-start-btn" onclick="startTimer()">▶ Start</button>
+          <button class="timer-btn pause" id="timer-pause-btn" onclick="pauseTimer()" style="display:none">⏸ Pause</button>
+          <button class="timer-btn stop" id="timer-stop-btn" onclick="stopTimer()" style="display:none">■ Stop & Save</button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-label">Quick Actions</div>
+      <div class="quick-actions">
+        <button class="qa-btn" onclick="showScreen('invoices')">
+          <div class="qa-icon">🧾</div>
+          <div class="qa-label">New Invoice</div>
+          <div class="qa-sub">Bill a client</div>
+        </button>
+        <button class="qa-btn" onclick="showScreen('expenses')">
+          <div class="qa-icon">💸</div>
+          <div class="qa-label">Log Expense</div>
+          <div class="qa-sub">Snap & save</div>
+        </button>
+        <button class="qa-btn" onclick="showScreen('maps')">
+          <div class="qa-icon">🗺</div>
+          <div class="qa-label">Today's Jobs</div>
+          <div class="qa-sub">Map & navigate</div>
+        </button>
+        <button class="qa-btn" onclick="showScreen('ai')">
+          <div class="qa-icon">🤖</div>
+          <div class="qa-label">Ask Tradie AI</div>
+          <div class="qa-sub">5 questions/day</div>
+        </button>
+      </div>
+
+      <!-- Recent Jobs -->
+      <div class="section-label">Recent Jobs</div>
+      <div class="card screen-pad" style="margin:0 12px 16px;padding:0">
+        <div id="dash-jobs-list"><div class="empty"><div class="empty-icon">⏱</div><div class="empty-text">No jobs yet — start the timer!</div></div></div>
+      </div>
+
+      <!-- Lite branding footer -->
+      <div style="text-align:center;padding:16px 20px 4px;font-size:11px;color:var(--muted)">
+        TradieMate Lite · Built by Vex 🦊 @ AMC inNOVAtions<br>
+        <span style="font-size:10px">Need BAS, reports, AI quotes & unlimited clients? <span style="color:var(--orange);cursor:pointer" onclick="window.open('https://amack-cpu.github.io/Trademate-/','_blank')">Upgrade to Solo →</span></span>
+      </div>
+    </div>
+
+    <!-- ══ JOBS ══ -->
+    <div class="screen" id="screen-jobs" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Jobs</div>
+          <div class="sec-sub" id="jobs-count-sub">All logged jobs</div>
+        </div>
+        <button class="btn-sm btn-orange" onclick="startTimer()">+ New</button>
+      </div>
+      <div class="pill-tabs">
+        <div class="pill-tab active" onclick="filterJobs('all',this)">All</div>
+        <div class="pill-tab" onclick="filterJobs('today',this)">Today</div>
+        <div class="pill-tab" onclick="filterJobs('week',this)">This Week</div>
+      </div>
+      <div class="card screen-pad" style="margin:0 12px;padding:0">
+        <div id="jobs-list"><div class="empty"><div class="empty-icon">⏱</div><div class="empty-text">No jobs yet</div></div></div>
+      </div>
+      <!-- Lite limit notice -->
+      <div style="margin:12px;background:rgba(249,115,22,.06);border:1px dashed rgba(249,115,22,.3);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--muted2);display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">🔒</span>
+        <span>Lite includes up to <b style="color:var(--orange)">20 invoices/mo</b> & <b style="color:var(--orange)">10 clients</b>. Need more? <span style="color:var(--orange);cursor:pointer" onclick="window.open('https://amack-cpu.github.io/Trademate-/','_blank')">Go Solo →</span></span>
+      </div>
+    </div>
+
+    <!-- ══ INVOICES ══ -->
+    <div class="screen" id="screen-invoices" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Invoices</div>
+          <div class="sec-sub" id="inv-count-sub">Up to 20/month</div>
+        </div>
+        <button class="btn-sm btn-orange" onclick="openNewInvoice()">+ New</button>
+      </div>
+      <div class="pill-tabs">
+        <div class="pill-tab active" onclick="filterInvoices('all',this)">All</div>
+        <div class="pill-tab" onclick="filterInvoices('unpaid',this)">Unpaid</div>
+        <div class="pill-tab" onclick="filterInvoices('paid',this)">Paid</div>
+      </div>
+      <div class="card screen-pad" style="margin:0 12px;padding:0">
+        <div id="invoices-list"><div class="empty"><div class="empty-icon">🧾</div><div class="empty-text">No invoices yet</div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ EXPENSES ══ -->
+    <div class="screen" id="screen-expenses" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Expenses</div>
+          <div class="sec-sub">Log materials & costs</div>
+        </div>
+        <button class="btn-sm btn-orange" onclick="openModal('modal-add-expense')">+ Add</button>
+      </div>
+      <div class="card screen-pad" style="margin:0 12px;padding:0">
+        <div id="expenses-list"><div class="empty"><div class="empty-icon">💸</div><div class="empty-text">No expenses logged</div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ AI ADVISOR (LIMITED) ══ -->
+    <div class="screen" id="screen-ai" style="padding-left:0;padding-right:0;display:flex;flex-direction:column">
+      <div class="sec-header screen-pad" style="flex-shrink:0">
+        <div>
+          <div class="sec-title">🤖 Tradie AI</div>
+          <div class="sec-sub">5 questions per day</div>
+        </div>
+        <span class="badge badge-orange" id="ai-questions-badge">5 left</span>
+      </div>
+      <div class="ai-limit-bar" id="ai-limit-bar">
+        <span id="ai-limit-text">5 of 5 questions remaining today</span>
+        <span style="color:var(--orange);font-size:11px;cursor:pointer" onclick="window.open('https://amack-cpu.github.io/Trademate-/','_blank')">Upgrade for unlimited →</span>
+      </div>
+      <div class="chat-area" id="chat-area">
+        <div class="msg ai">Hey 👋 I'm your Tradie AI. Ask me about pricing, job management, materials or trade advice. You have <b>5 questions</b> today — upgrade to Solo for unlimited.<br><br>What do you need help with?</div>
+      </div>
+      <div class="chat-input-row" style="flex-shrink:0">
+        <input class="chat-input" id="chat-input" placeholder="Ask anything trade-related..." onkeydown="if(event.key==='Enter')sendAIMessage()">
+        <button class="chat-send-btn" onclick="sendAIMessage()">↑</button>
+      </div>
+    </div>
+
+    <!-- ══ MAPS — AMC Navigation ══ -->
+    <div class="screen" id="screen-maps" style="padding:0;display:flex;flex-direction:column;height:100%">
+
+      <div class="sec-header screen-pad" style="flex-shrink:0">
+        <div>
+          <div class="sec-title">🗺 AMC Navigation</div>
+          <div style="font-size:10px;color:#f97316;font-weight:700;letter-spacing:.3px">by Vex @ AMC inNOVAtions</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="icon-btn" id="btn-map-voice" onclick="toggleMapVoice()" title="Voice control">🎙</button>
+          <button class="icon-btn" onclick="tradieMap&&tradieMap.setView([userLat,userLng],14)" title="My location">📍</button>
+          <button class="icon-btn" onclick="openModal('modal-map-settings')" title="Settings">⚙️</button>
+        </div>
+      </div>
+
+      <!-- Today only for Lite -->
+      <div style="padding:0 12px 10px;flex-shrink:0">
+        <div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--muted2);display:flex;align-items:center;justify-content:space-between">
+          <span>📅 Today's jobs only · Route: 2 stops max</span>
+          <span style="color:var(--orange);cursor:pointer;font-weight:700" onclick="window.open('https://amack-cpu.github.io/Trademate-/','_blank')">Solo →</span>
+        </div>
+      </div>
+
+      <!-- POI toolbar -->
+      <div style="background:var(--card);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;gap:6px;flex-shrink:0;overflow-x:auto">
+        <button class="map-badge" data-poi="fuel" onclick="togglePOILayer('fuel',this)">⛽ Fuel</button>
+        <button class="map-badge" data-poi="food" onclick="togglePOILayer('food',this)">🍔 Food</button>
+        <button class="map-badge" data-poi="supplier" onclick="togglePOILayer('supplier',this)">🔧 Suppliers</button>
+        <button class="map-badge" data-poi="fav" onclick="togglePOILayer('fav',this)">⭐ Saved</button>
+        <button class="map-badge" id="badge-waze-alerts" onclick="wazeEnabled?loadWazeAlerts():connectWaze()">🚔 Waze</button>
+      </div>
+
+      <!-- Map -->
+      <div id="tradie-map" style="flex:1;min-height:0;z-index:1"></div>
+
+      <!-- Route strip — 2 stop max for Lite -->
+      <div id="route-summary" style="display:none;background:var(--card);border-top:2px solid var(--orange);padding:10px 14px;flex-shrink:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div id="route-info" style="font-size:13px;font-weight:700">—</div>
+          <button class="btn-sm btn-orange" onclick="startNavigation()">Start →</button>
+        </div>
+        <div id="route-stops"></div>
+      </div>
+
+      <!-- Integration bar -->
+      <div style="background:var(--card);border-top:1px solid var(--border);padding:6px 12px;display:flex;gap:6px;flex-shrink:0;overflow-x:auto;align-items:center">
+        <div class="map-badge active-badge">🗺 OSM</div>
+        <div class="map-badge" id="badge-gmaps" onclick="connectGoogleMaps()">📍 Google Maps</div>
+        <div class="map-badge" id="badge-waze" onclick="connectWaze()">🚔 Waze</div>
+        <div style="margin-left:auto;font-size:10px;color:var(--muted)">AMC Navigation</div>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="screen" id="screen-settings" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div class="sec-title">Settings</div>
+      </div>
+      <div style="padding:0 12px">
+        <div class="form-section">Business Info</div>
+        <label class="form-label">Your Name</label>
+        <input class="form-input" id="set-name" placeholder="e.g. Dave Smith">
+        <label class="form-label">Trade Type</label>
+        <select class="form-select" id="set-trade">
+          <option>Builder</option><option>Electrician</option><option>Plumber</option>
+          <option>Carpenter</option><option>Painter</option><option>Tiler</option>
+          <option>Concreter</option><option>Landscaper</option><option>Arborist</option><option>Other</option>
+        </select>
+        <label class="form-label">Hourly Rate ($)</label>
+        <input class="form-input" id="set-rate" type="number" placeholder="e.g. 85">
+        <label class="form-label">ABN</label>
+        <input class="form-input" id="set-abn" placeholder="11 digit ABN">
+        <div class="form-section">Map Integrations</div>
+        <label class="form-label">Google Maps API Key (optional)</label>
+        <input class="form-input" id="gmap-key-input" placeholder="Paste key for live traffic">
+        <button class="btn-sm btn-orange" onclick="saveGoogleMapsKey()" style="margin-bottom:12px">Connect Google Maps</button>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 0;font-size:14px;border-top:1px solid var(--border)">
+          <input type="checkbox" id="waze-toggle" onchange="if(this.checked)enableWaze()"> Enable Waze Alerts
+        </label>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px">🚔 Police checkpoints, accidents & hazards on your map. Community-reported — not guaranteed.</div>
+        <div class="form-section">Upgrade</div>
+        <div style="background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(249,115,22,.3);border-radius:var(--radius);padding:16px;margin-bottom:12px">
+          <div style="font-size:16px;font-weight:800;margin-bottom:6px">TradieMate Solo</div>
+          <div style="font-size:13px;color:var(--muted2);line-height:1.6;margin-bottom:14px">Unlimited clients · Unlimited invoices · BAS calculator · AI quotes · Rate cards · Recurring jobs · Voice control · Full route planning · Weather alerts</div>
+          <div style="font-size:20px;font-weight:800;color:var(--orange);margin-bottom:4px">$99 <span style="font-size:13px;color:var(--muted);font-weight:400">/month</span></div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">+ $399 setup fee · Cancel anytime*</div>
+          <button class="btn-primary" onclick="window.open('https://amack-cpu.github.io/Trademate-/','_blank')">Upgrade to Solo →</button>
+          <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center">*Cancel anytime. AI features deactivate on cancellation. Your data stays on device.</div>
+        </div>
+        <button class="btn-sm btn-ghost" onclick="saveSettings()" style="width:100%;margin-bottom:8px">Save Settings</button>
+      </div>
+    </div>
+
+  </div><!-- end screens -->
+
+  <!-- NAV BAR -->
+  <div class="nav">
+    <button class="nav-item active" id="nav-dash" onclick="showScreen('dash')"><span class="nav-icon">🏠</span>Home</button>
+    <button class="nav-item" id="nav-jobs" onclick="showScreen('jobs')"><span class="nav-icon">⏱</span>Jobs</button>
+    <button class="nav-item" id="nav-invoices" onclick="showScreen('invoices')"><span class="nav-icon">🧾</span>Invoices</button>
+    <button class="nav-item" id="nav-maps" onclick="showScreen('maps')"><span class="nav-icon">🗺</span>Maps</button>
+    <button class="nav-item" id="nav-ai" onclick="showScreen('ai')"><span class="nav-icon">🤖</span>AI</button>
+  </div>
+</div><!-- end app -->
+
+<!-- ══ MODALS ══ -->
+
+<!-- Add Expense -->
+<div class="modal-overlay" id="modal-add-expense">
+  <div class="modal-box">
+    <div class="modal-header"><span class="modal-title">Log Expense</span><button class="modal-close" onclick="closeModal('modal-add-expense')">✕</button></div>
+    <div style="padding:16px">
+      <label class="form-label">Description</label>
+      <input class="form-input" id="exp-desc" placeholder="e.g. PVC pipe, sandpaper">
+      <label class="form-label">Amount ($)</label>
+      <input class="form-input" id="exp-amount" type="number" placeholder="0.00">
+      <label class="form-label">Category</label>
+      <select class="form-select" id="exp-cat">
+        <option>Materials</option><option>Tools</option><option>Fuel</option>
+        <option>Subcontractor</option><option>Other</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:14px">
+        <input type="checkbox" id="exp-gst" checked> Includes GST
+      </label>
+      <button class="btn-primary" onclick="saveExpense()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Invoice -->
+<div class="modal-overlay" id="modal-new-invoice">
+  <div class="modal-box">
+    <div class="modal-header"><span class="modal-title">New Invoice</span><button class="modal-close" onclick="closeModal('modal-new-invoice')">✕</button></div>
+    <div style="padding:16px">
+      <label class="form-label">Client Name</label>
+      <input class="form-input" id="inv-client" placeholder="Client or company name">
+      <label class="form-label">Description of Work</label>
+      <input class="form-input" id="inv-desc" placeholder="e.g. Electrical rough-in, 3 bed house">
+      <label class="form-label">Amount (ex GST) $</label>
+      <input class="form-input" id="inv-amount" type="number" placeholder="0.00">
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:14px">
+        <input type="checkbox" id="inv-gst" checked> Add 10% GST
+      </label>
+      <label class="form-label">Notes</label>
+      <input class="form-input" id="inv-notes" placeholder="Payment terms, bank details...">
+      <button class="btn-primary" onclick="saveInvoice()">Create Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- Map Settings -->
+<div class="modal-overlay" id="modal-map-settings">
+  <div class="modal-box">
+    <div class="modal-header"><span class="modal-title">Map Settings</span><button class="modal-close" onclick="closeModal('modal-map-settings')">✕</button></div>
+    <div style="padding:16px">
+      <div class="form-section">Integrations</div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-weight:700;margin-bottom:4px">🗺 OpenStreetMap</div>
+        <div style="font-size:13px;color:var(--green)">✓ Always on · No setup needed</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-weight:700;margin-bottom:6px">📍 Google Maps</div>
+        <div style="font-size:12px;color:var(--muted2);margin-bottom:10px">Enables Google tiles + live traffic on our map</div>
+        <input class="form-input" id="gmap-key-input-modal" placeholder="Paste Google Maps API key...">
+        <button class="btn-sm btn-orange" onclick="saveGoogleMapsKeyModal()">Connect</button>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-weight:700;margin-bottom:6px">🚔 Waze Alerts</div>
+        <div style="font-size:12px;color:var(--muted2);margin-bottom:10px">Police checkpoints, accidents & hazards on your map</div>
+        <button class="btn-sm btn-orange" onclick="enableWaze()" id="btn-waze-connect">Enable Waze</button>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px">Community-reported. TradieMate makes no guarantee of accuracy.</div>
+      </div>
+      <div class="form-section">Route (Lite: 2 stops max)</div>
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px">
+        <input type="checkbox" id="pref-avoid-tolls" onchange="saveMapPrefs()"> Avoid toll roads
+      </label>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+// TRADIEMATE LITE — Core App
+// ════════════════════════════════════════════════════
+
+const LITE_MAX_INVOICES_PM = 20;
+const LITE_MAX_CLIENTS = 10;
+const LITE_AI_DAILY = 5;
+const UPGRADE_URL = 'https://amack-cpu.github.io/Trademate-/';
+
+// ── SPLASH ──────────────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('app').style.display = 'flex';
+    initApp();
+  }, 1900);
+});
+
+function initApp() {
+  updateDashGreeting();
+  renderDash();
+  renderJobs('all');
+  renderInvoices('all');
+  renderExpenses();
+  loadSettings();
+  fetchWeather();
+  checkAIQuota();
+  setInterval(tickTimer, 1000);
+}
+
+// ── SCREEN NAV ──────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const sc = document.getElementById('screen-' + name);
+  if (sc) sc.classList.add('active');
+  const nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+  if (name === 'maps') setTimeout(initMap, 120);
+  if (name === 'ai') setTimeout(() => { const c = document.getElementById('chat-area'); if(c) c.scrollTop = 9999; }, 100);
+}
+
+// ── TOAST ────────────────────────────────────────────
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type==='warn'?'#92400e':type==='info'?'#1e293b':'#14532d';
+  t.style.borderColor = type==='warn'?'#d97706':type==='info'?'#334155':'#166534';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── MODAL ────────────────────────────────────────────
+function openModal(id) { const el = document.getElementById(id); if(el) el.classList.add('open'); }
+function closeModal(id) { const el = document.getElementById(id); if(el) el.classList.remove('open'); }
+
+// ── DASHBOARD ────────────────────────────────────────
+function updateDashGreeting() {
+  const h = new Date().getHours();
+  const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const profile = JSON.parse(localStorage.getItem('tm_lite_profile') || '{}');
+  document.getElementById('dash-greeting').textContent = `${g}${profile.name ? ', ' + profile.name.split(' ')[0] : ''} 👋`;
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long' });
+  document.getElementById('topbar-sub').textContent = new Date().toLocaleDateString('en-AU', { weekday:'short', day:'numeric', month:'short' });
+}
+
+function renderDash() {
+  const jobs = getJobs();
+  const invoices = getInvoices();
+  const expenses = getExpenses();
+  const now = new Date();
+  const m = now.getMonth(), y = now.getFullYear();
+
+  const monthInv = invoices.filter(i => { const d = new Date(i.date); return d.getMonth()===m && d.getFullYear()===y; });
+  const revenue = monthInv.filter(i=>i.status==='paid').reduce((s,i)=>s+(i.total||0),0);
+  const unpaid = monthInv.filter(i=>i.status!=='paid').reduce((s,i)=>s+(i.total||0),0);
+  const monthJobs = jobs.filter(j => { const d = new Date(j.date); return d.getMonth()===m && d.getFullYear()===y; });
+  const monthExp = expenses.filter(e => { const d = new Date(e.date); return d.getMonth()===m && d.getFullYear()===y; }).reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+
+  document.getElementById('dash-revenue').textContent = '$' + revenue.toFixed(0);
+  document.getElementById('dash-rev-sub').textContent = monthInv.filter(i=>i.status==='paid').length + ' paid invoices';
+  document.getElementById('dash-unpaid').textContent = '$' + unpaid.toFixed(0);
+  document.getElementById('dash-unpaid-sub').textContent = monthInv.filter(i=>i.status!=='paid').length + ' outstanding';
+  document.getElementById('dash-jobs').textContent = monthJobs.length;
+  document.getElementById('dash-expenses').textContent = '$' + monthExp.toFixed(0);
+
+  const recentJobs = jobs.slice(-5).reverse();
+  const el = document.getElementById('dash-jobs-list');
+  if (!recentJobs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">⏱</div><div class="empty-text">No jobs yet — start the timer!</div></div>'; return; }
+  el.innerHTML = recentJobs.map(j => `
+    <div class="list-item">
+      <div class="li-icon" style="background:rgba(249,115,22,.1)">⏱</div>
+      <div class="li-body"><div class="li-title">${j.client||'No client'}</div><div class="li-sub">${j.type||'General'} · ${j.duration||0} min</div></div>
+      <div class="li-right"><div class="li-date">${new Date(j.date).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</div></div>
+    </div>`).join('');
+}
+
+// ── TIMER ────────────────────────────────────────────
+let timerRunning = false, timerPaused = false, timerSeconds = 0, timerInterval = null, timerStartTs = null;
+
+function startTimer() {
+  if (timerRunning && !timerPaused) return;
+  if (!timerRunning) { timerSeconds = 0; timerStartTs = Date.now(); }
+  timerRunning = true; timerPaused = false;
+  document.getElementById('timer-start-btn').style.display = 'none';
+  document.getElementById('timer-pause-btn').style.display = 'flex';
+  document.getElementById('timer-stop-btn').style.display = 'flex';
+  document.getElementById('timer-status-badge').textContent = 'Running';
+  document.getElementById('timer-status-badge').className = 'badge badge-green';
+  showScreen('dash');
+}
+
+function pauseTimer() {
+  timerPaused = true;
+  document.getElementById('timer-pause-btn').textContent = '▶ Resume';
+  document.getElementById('timer-pause-btn').onclick = resumeTimer;
+  document.getElementById('timer-status-badge').textContent = 'Paused';
+  document.getElementById('timer-status-badge').className = 'badge badge-blue';
+}
+
+function resumeTimer() {
+  timerPaused = false;
+  document.getElementById('timer-pause-btn').textContent = '⏸ Pause';
+  document.getElementById('timer-pause-btn').onclick = pauseTimer;
+  document.getElementById('timer-status-badge').textContent = 'Running';
+  document.getElementById('timer-status-badge').className = 'badge badge-green';
+}
+
+function stopTimer() {
+  if (!timerRunning) return;
+  timerRunning = false; timerPaused = false;
+  const mins = Math.round(timerSeconds / 60);
+  const client = document.getElementById('timer-client-sel').value;
+  saveJob({ client, type:'General', duration:mins, date:new Date().toISOString(), status:'completed' });
+  timerSeconds = 0;
+  document.getElementById('timer-display').textContent = '00:00:00';
+  document.getElementById('timer-start-btn').style.display = 'flex';
+  document.getElementById('timer-pause-btn').style.display = 'none';
+  document.getElementById('timer-stop-btn').style.display = 'none';
+  document.getElementById('timer-status-badge').textContent = 'Stopped';
+  document.getElementById('timer-status-badge').className = 'badge badge-orange';
+  showToast(`Job saved — ${mins} minutes`, 'success');
+  renderDash();
+}
+
+function tickTimer() {
+  if (!timerRunning || timerPaused) return;
+  timerSeconds++;
+  const h = Math.floor(timerSeconds/3600), m = Math.floor((timerSeconds%3600)/60), s = timerSeconds%60;
+  document.getElementById('timer-display').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ── DATA HELPERS ─────────────────────────────────────
+function getJobs() { return JSON.parse(localStorage.getItem('tm_lite_jobs')||'[]'); }
+function getInvoices() { return JSON.parse(localStorage.getItem('tm_lite_invoices')||'[]'); }
+function getExpenses() { return JSON.parse(localStorage.getItem('tm_lite_expenses')||'[]'); }
+
+function saveJob(job) {
+  const jobs = getJobs();
+  jobs.push({ ...job, id: Date.now() });
+  localStorage.setItem('tm_lite_jobs', JSON.stringify(jobs));
+}
+
+function saveInvoice(inv) {
+  const invs = getInvoices();
+  invs.push({ ...inv, id: Date.now() });
+  localStorage.setItem('tm_lite_invoices', JSON.stringify(invs));
+}
+
+// ── JOBS LIST ────────────────────────────────────────
+function filterJobs(f, el) {
+  document.querySelectorAll('#screen-jobs .pill-tab').forEach(t => t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderJobs(f);
+}
+
+function renderJobs(filter) {
+  const jobs = getJobs();
+  const now = new Date(), todayStr = now.toISOString().split('T')[0];
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+  let filtered = jobs;
+  if (filter==='today') filtered = jobs.filter(j=>(j.date||'').startsWith(todayStr));
+  else if (filter==='week') filtered = jobs.filter(j=>new Date(j.date)>=weekStart);
+  const el = document.getElementById('jobs-list');
+  document.getElementById('jobs-count-sub').textContent = `${filtered.length} jobs`;
+  if (!filtered.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">⏱</div><div class="empty-text">No jobs in this period</div></div>'; return; }
+  el.innerHTML = filtered.reverse().map(j=>`
+    <div class="list-item">
+      <div class="li-icon" style="background:rgba(249,115,22,.1)">⏱</div>
+      <div class="li-body"><div class="li-title">${j.client||'No client'}</div><div class="li-sub">${j.type||'General'} · ${j.duration||0} min</div></div>
+      <div class="li-right"><span class="badge badge-green">Done</span><div class="li-date">${new Date(j.date).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</div></div>
+    </div>`).join('');
+}
+
+// ── INVOICES ─────────────────────────────────────────
+function filterInvoices(f, el) {
+  document.querySelectorAll('#screen-invoices .pill-tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderInvoices(f);
+}
+
+function renderInvoices(filter) {
+  const invs = getInvoices();
+  let filtered = invs;
+  if (filter==='unpaid') filtered = invs.filter(i=>i.status!=='paid');
+  else if (filter==='paid') filtered = invs.filter(i=>i.status==='paid');
+  const el = document.getElementById('invoices-list');
+  const now = new Date();
+  const monthInvCount = invs.filter(i=>{const d=new Date(i.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
+  document.getElementById('inv-count-sub').textContent = `${monthInvCount}/${LITE_MAX_INVOICES_PM} this month`;
+  if (!filtered.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🧾</div><div class="empty-text">No invoices yet</div></div>'; return; }
+  el.innerHTML = filtered.reverse().map(i=>`
+    <div class="list-item" onclick="markPaid('${i.id}')">
+      <div class="li-icon" style="background:rgba(59,130,246,.1)">🧾</div>
+      <div class="li-body"><div class="li-title">${i.client}</div><div class="li-sub">${i.desc||''}</div></div>
+      <div class="li-right"><div class="li-amount">$${(i.total||0).toFixed(2)}</div><span class="badge ${i.status==='paid'?'badge-green':'badge-orange'}">${i.status==='paid'?'Paid':'Unpaid'}</span></div>
+    </div>`).join('');
+}
+
+function openNewInvoice() {
+  const invs = getInvoices();
+  const now = new Date();
+  const monthCount = invs.filter(i=>{const d=new Date(i.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
+  if (monthCount >= LITE_MAX_INVOICES_PM) {
+    showUpgradeBanner(`You've used all ${LITE_MAX_INVOICES_PM} invoices this month. Upgrade to Solo for unlimited.`);
+    return;
+  }
+  openModal('modal-new-invoice');
+}
+
+function saveInvoice() {
+  const client = document.getElementById('inv-client').value.trim();
+  const desc = document.getElementById('inv-desc').value.trim();
+  const amt = parseFloat(document.getElementById('inv-amount').value)||0;
+  const gst = document.getElementById('inv-gst').checked;
+  const notes = document.getElementById('inv-notes').value.trim();
+  if (!client||!amt) { showToast('Enter client name and amount','warn'); return; }
+  const gstAmt = gst ? amt*0.1 : 0;
+  const total = amt + gstAmt;
+  const invs = getInvoices();
+  invs.push({ id:Date.now(), client, desc, amount:amt, gst:gstAmt, total, notes, date:new Date().toISOString(), status:'unpaid', invNum:`TML-${String(invs.length+1).padStart(4,'0')}` });
+  localStorage.setItem('tm_lite_invoices', JSON.stringify(invs));
+  closeModal('modal-new-invoice');
+  ['inv-client','inv-desc','inv-amount','inv-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderInvoices('all');
+  renderDash();
+  showToast('Invoice created ✓','success');
+}
+
+function markPaid(id) {
+  const invs = getInvoices();
+  const inv = invs.find(i=>String(i.id)===String(id));
+  if (!inv) return;
+  inv.status = inv.status==='paid' ? 'unpaid' : 'paid';
+  localStorage.setItem('tm_lite_invoices', JSON.stringify(invs));
+  renderInvoices('all');
+  renderDash();
+  showToast(inv.status==='paid'?'Marked as paid ✓':'Marked as unpaid','info');
+}
+
+// ── EXPENSES ─────────────────────────────────────────
+function renderExpenses() {
+  const exps = getExpenses();
+  const el = document.getElementById('expenses-list');
+  if (!exps.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">No expenses logged</div></div>'; return; }
+  el.innerHTML = exps.slice().reverse().map(e=>`
+    <div class="list-item">
+      <div class="li-icon" style="background:rgba(34,197,94,.1)">💸</div>
+      <div class="li-body"><div class="li-title">${e.desc}</div><div class="li-sub">${e.cat||'General'} ${e.gst?'· inc. GST':''}</div></div>
+      <div class="li-right"><div class="li-amount" style="color:var(--red)">$${parseFloat(e.amount).toFixed(2)}</div><div class="li-date">${new Date(e.date).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</div></div>
+    </div>`).join('');
+}
+
+function saveExpense() {
+  const desc = document.getElementById('exp-desc').value.trim();
+  const amount = parseFloat(document.getElementById('exp-amount').value)||0;
+  const cat = document.getElementById('exp-cat').value;
+  const gst = document.getElementById('exp-gst').checked;
+  if (!desc||!amount) { showToast('Enter description and amount','warn'); return; }
+  const exps = getExpenses();
+  exps.push({ id:Date.now(), desc, amount, cat, gst, date:new Date().toISOString() });
+  localStorage.setItem('tm_lite_expenses', JSON.stringify(exps));
+  closeModal('modal-add-expense');
+  document.getElementById('exp-desc').value='';
+  document.getElementById('exp-amount').value='';
+  renderExpenses();
+  renderDash();
+  showToast('Expense saved ✓','success');
+}
+
+// ── AI ADVISOR (5/day) ────────────────────────────────
+function checkAIQuota() {
+  const today = new Date().toDateString();
+  const stored = JSON.parse(localStorage.getItem('tm_lite_ai_quota')||'{}');
+  if (stored.date !== today) {
+    localStorage.setItem('tm_lite_ai_quota', JSON.stringify({ date:today, used:0 }));
+  }
+  updateAIBadge();
+}
+
+function getAIUsed() {
+  const today = new Date().toDateString();
+  const stored = JSON.parse(localStorage.getItem('tm_lite_ai_quota')||'{}');
+  if (stored.date !== today) return 0;
+  return stored.used || 0;
+}
+
+function incrementAIUsed() {
+  const today = new Date().toDateString();
+  const stored = JSON.parse(localStorage.getItem('tm_lite_ai_quota')||'{}');
+  const used = (stored.date===today ? stored.used||0 : 0) + 1;
+  localStorage.setItem('tm_lite_ai_quota', JSON.stringify({ date:today, used }));
+  updateAIBadge();
+  return used;
+}
+
+function updateAIBadge() {
+  const used = getAIUsed();
+  const left = Math.max(0, LITE_AI_DAILY - used);
+  const badge = document.getElementById('ai-questions-badge');
+  const bar = document.getElementById('ai-limit-text');
+  if (badge) badge.textContent = `${left} left`;
+  if (bar) bar.textContent = `${left} of ${LITE_AI_DAILY} questions remaining today`;
+}
+
+const AI_RESPONSES = {
+  price:  'For pricing in Australia, a good rule of thumb is to calculate your cost rate (materials + labour + overheads) then add 20–30% margin. Most tradies undercharge — if you haven\'t reviewed rates in 12 months, you\'re probably behind CPI.',
+  quote:  'A solid quote includes: scope of work clearly described, material allowances, exclusions listed, payment terms, and an expiry date. Upgrade to Solo for AI-assisted quote generation.',
+  invoice:'Always include your ABN, payment terms (7 or 14 days is standard), bank details, and a clear description. Late payment? Add a 2% per month clause to your T&Cs.',
+  gst:    'You must register for GST once your annual turnover hits $75,000. Once registered, add 10% to all invoices and lodge a BAS quarterly. Upgrade to Solo for automatic BAS calculation.',
+  default:'Good question. For detailed trade-specific advice, Upgrade to Solo for unlimited AI support. Here\'s a general answer: always document your scope of work clearly, keep receipts for everything, and review your rates at least once a year.'
+};
+
+function sendAIMessage() {
+  const used = getAIUsed();
+  if (used >= LITE_AI_DAILY) {
+    showUpgradeBanner('Daily AI limit reached. Upgrade to Solo for unlimited questions.');
+    return;
+  }
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  const area = document.getElementById('chat-area');
+  area.innerHTML += `<div class="msg user">${msg}</div>`;
+  area.scrollTop = 9999;
+  incrementAIUsed();
+
+  setTimeout(() => {
+    const lc = msg.toLowerCase();
+    let response = AI_RESPONSES.default;
+    if (/price|rate|charge|cost/.test(lc)) response = AI_RESPONSES.price;
+    else if (/quote|tender|estimate/.test(lc)) response = AI_RESPONSES.quote;
+    else if (/invoice|bill|payment/.test(lc)) response = AI_RESPONSES.invoice;
+    else if (/gst|bas|tax|ato/.test(lc)) response = AI_RESPONSES.gst;
+    const left = Math.max(0, LITE_AI_DAILY - getAIUsed());
+    area.innerHTML += `<div class="msg ai">${response}${left===0?'<br><br><b>Daily limit reached.</b> <span style="color:var(--orange);cursor:pointer" onclick="window.open(\''+UPGRADE_URL+'\',\'_blank\')">Upgrade to Solo →</span>':left<=2?`<br><br><small style="color:var(--muted)">${left} question${left===1?'':'s'} left today</small>`:''}</div>`;
+    area.scrollTop = 9999;
+  }, 900);
+}
+
+// ── UPGRADE BANNER ────────────────────────────────────
+function showUpgradeBanner(msg) {
+  const banner = document.getElementById('upgrade-banner');
+  const text = document.getElementById('upgrade-text');
+  if (text) text.innerHTML = `<b>Upgrade to Solo</b> — ${msg}`;
+  if (banner) { banner.style.display='flex'; setTimeout(()=>banner.style.display='none', 6000); }
+}
+
+// ── WEATHER ──────────────────────────────────────────
+async function fetchWeather() {
+  try {
+    const pos = await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));
+    const {latitude:lat,longitude:lon} = pos.coords;
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=weathercode,windspeed_10m_max&timezone=auto&forecast_days=1`);
+    const d = await r.json();
+    const cw = d.current_weather;
+    const wc = cw.weathercode;
+    const ws = cw.windspeed;
+    const emojis = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',71:'🌨',73:'🌨',75:'🌨',80:'🌦',81:'🌧',82:'🌧',95:'⛈',96:'⛈',99:'⛈'};
+    const em = emojis[wc]||'🌤';
+    document.getElementById('weather-mini').textContent = em;
+    const alert = document.getElementById('weather-alert');
+    const danger = wc>=80||ws>50;
+    if (danger || wc>=61) {
+      alert.className='weather-alert visible'+(wc>=80||ws>60?' danger':'');
+      document.getElementById('wa-title').textContent = ws>60?'⚠️ High Wind Warning':wc>=80?'⚠️ Storm Warning':'⚠️ Rain Expected';
+      document.getElementById('wa-detail').textContent = `Wind ${ws}km/h · Code ${wc} · Check site safety before starting`;
+    }
+  } catch(e) {}
+}
+
+// ── SETTINGS ─────────────────────────────────────────
+function loadSettings() {
+  const p = JSON.parse(localStorage.getItem('tm_lite_profile')||'{}');
+  if (document.getElementById('set-name')) document.getElementById('set-name').value = p.name||'';
+  if (document.getElementById('set-trade')) document.getElementById('set-trade').value = p.trade||'Builder';
+  if (document.getElementById('set-rate')) document.getElementById('set-rate').value = p.rate||'';
+  if (document.getElementById('set-abn')) document.getElementById('set-abn').value = p.abn||'';
+  const gKey = localStorage.getItem('tm_gmaps_key');
+  if (gKey && document.getElementById('gmap-key-input')) document.getElementById('gmap-key-input').value = gKey;
+  const waze = localStorage.getItem('tm_waze_enabled')==='true';
+  if (document.getElementById('waze-toggle')) document.getElementById('waze-toggle').checked = waze;
+  // Populate timer client select
+  const sel = document.getElementById('timer-client-sel');
+  if (sel && p.name) { const opt = document.createElement('option'); opt.value=p.name; opt.textContent=p.name; sel.appendChild(opt); }
+}
+
+function saveSettings() {
+  const p = {
+    name: document.getElementById('set-name').value.trim(),
+    trade: document.getElementById('set-trade').value,
+    rate: document.getElementById('set-rate').value,
+    abn: document.getElementById('set-abn').value.trim(),
+    tier: 'lite'
+  };
+  localStorage.setItem('tm_lite_profile', JSON.stringify(p));
+  localStorage.setItem('tm_profile', JSON.stringify(p)); // shared with maps module
+  showToast('Settings saved ✓','success');
+  updateDashGreeting();
+  const gKey = document.getElementById('gmap-key-input')?.value.trim();
+  if (gKey) { localStorage.setItem('tm_gmaps_key', gKey); saveGoogleMapsKey(); }
+  const waze = document.getElementById('waze-toggle')?.checked;
+  if (waze) enableWaze();
+}
+
+// ════════════════════════════════════════════════════
+// AMC NAVIGATION MODULE — Lite Tier
+// by Vex @ AMC inNOVAtions
+// ════════════════════════════════════════════════════
+
+let tradieMap = null, mapMarkers = [], routeLayer = null, routeWaypoints = [];
+let wazeEnabled = false, googleMapsKey = null;
+let wazeAlertMarkers = [], poiMarkers = [], userLocationMarker = null;
+let userLat = -33.8688, userLng = 151.2093;
+let googleTileLayer = null, mapVoiceActive = false, mapVoiceRecognition = null;
+let activePOILayers = new Set(), favouritePOIs = [];
+let mapFilter = 'today';
+
+const TRADE_SUPPLIERS = {
+  'Arborist':    { label:'Tree Suppliers', query:'name~"Stihl|Husqvarna|Arbor"' },
+  'Electrician': { label:'Electrical Suppliers', query:'name~"Haymans|Rexel|NHP"' },
+  'Plumber':     { label:'Plumbing Suppliers', query:'name~"Reece|Tradelink|Plumb"' },
+  'Builder':     { label:'Builders Supplies', query:'name~"Bunnings|Beaumont|Mitre 10"' },
+  'Painter':     { label:'Paint Suppliers', query:'name~"Dulux|Taubmans|Haymes"' },
+  'Carpenter':   { label:'Timber Supplies', query:'name~"Bunnings|Carter|Hyne"' },
+  'Concreter':   { label:'Concrete Suppliers', query:'name~"Boral|Hanson|Holcim"' },
+  'Tiler':       { label:'Tile Suppliers', query:'name~"Beaumont|Tile|CTM"' },
+  'Landscaper':  { label:'Landscape Supplies', query:'name~"Fulton|Landscape|Garden"' },
+  'default':     { label:'Trade Suppliers', query:'shop=doityourself' }
+};
+
+function initMap() {
+  googleMapsKey = localStorage.getItem('tm_gmaps_key');
+  wazeEnabled = localStorage.getItem('tm_waze_enabled') === 'true';
+  favouritePOIs = JSON.parse(localStorage.getItem('tm_fav_pois') || '[]');
+
+  if (tradieMap) { tradieMap.invalidateSize(); loadMapJobs(); return; }
+
+  userLat = parseFloat(localStorage.getItem('tm_home_lat') || '-33.8688');
+  userLng = parseFloat(localStorage.getItem('tm_home_lng') || '151.2093');
+
+  tradieMap = L.map('tradie-map', { center:[userLat,userLng], zoom:13, zoomControl:false, attributionControl:false });
+  L.control.zoom({ position:'topright' }).addTo(tradieMap);
+  setMapTiles();
+
+  // AMC Navigation watermark
+  const amcWm = L.control({ position:'bottomleft' });
+  amcWm.onAdd = () => {
+    const d = L.DomUtil.create('div');
+    d.innerHTML = '<div style="background:rgba(15,17,23,.8);color:#f97316;font-size:10px;font-weight:800;padding:4px 10px;border-radius:6px;border:1px solid rgba(249,115,22,.3)">🦊 AMC Navigation</div>';
+    return d;
+  };
+  amcWm.addTo(tradieMap);
+
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(pos => {
+      userLat = pos.coords.latitude; userLng = pos.coords.longitude;
+      localStorage.setItem('tm_home_lat', userLat); localStorage.setItem('tm_home_lng', userLng);
+      updateUserMarker();
+    }, null, { enableHighAccuracy:true, maximumAge:15000, timeout:10000 });
+    navigator.geolocation.getCurrentPosition(pos => {
+      userLat = pos.coords.latitude; userLng = pos.coords.longitude;
+      tradieMap.setView([userLat, userLng], 13);
+      updateUserMarker(); loadMapJobs();
+      if (wazeEnabled) loadWazeAlerts();
+    }, () => { updateUserMarker(); loadMapJobs(); });
+  } else { updateUserMarker(); loadMapJobs(); }
+
+  if (googleMapsKey) document.getElementById('badge-gmaps')?.classList.add('connected-badge');
+  if (wazeEnabled) document.getElementById('badge-waze')?.classList.add('connected-badge');
+  initMapVoice();
+  renderFavPOIs();
+}
+
+function setMapTiles() {
+  if (googleTileLayer) { tradieMap.removeLayer(googleTileLayer); googleTileLayer = null; }
+  if (googleMapsKey) {
+    googleTileLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { subdomains:'0123', maxZoom:20 }).addTo(tradieMap);
+  } else {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19, subdomains:'abcd' }).addTo(tradieMap);
+  }
+}
+
+function updateUserMarker() {
+  const icon = L.divIcon({ html:'<div style="width:16px;height:16px;background:#f97316;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 5px rgba(249,115,22,.25)"></div>', className:'', iconAnchor:[8,8] });
+  if (userLocationMarker) tradieMap.removeLayer(userLocationMarker);
+  userLocationMarker = L.marker([userLat,userLng],{icon,zIndexOffset:1000}).addTo(tradieMap).bindPopup('<b>📍 You are here</b>');
+}
+
+function loadMapJobs() {
+  if (!tradieMap) return;
+  mapMarkers.forEach(m => tradieMap.removeLayer(m)); mapMarkers = [];
+  // Lite: today only, pull from lite jobs
+  const jobs = JSON.parse(localStorage.getItem('tm_lite_jobs')||'[]');
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayJobs = jobs.filter(j => (j.date||'').startsWith(todayStr) && j.address);
+  const bounds = [[userLat, userLng]];
+  todayJobs.forEach((job, idx) => {
+    if (job.lat && job.lng) placeJobMarker(job, idx, bounds);
+    else if (job.address) geocodeAddress(job.address, (lat,lng) => { job.lat=lat; job.lng=lng; placeJobMarker(job,idx,bounds); });
+  });
+  if (bounds.length > 2) setTimeout(() => { try { tradieMap.fitBounds(bounds,{padding:[60,60]}); } catch(e){} }, 700);
+}
+
+function placeJobMarker(job, idx, bounds) {
+  const lat=parseFloat(job.lat), lng=parseFloat(job.lng);
+  if (isNaN(lat)||isNaN(lng)) return;
+  const colors=['#f97316','#3b82f6','#22c55e','#a855f7','#ef4444','#eab308'];
+  const color=colors[idx%colors.length];
+  const icon=L.divIcon({html:`<div style="background:${color};color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.5)">${idx+1}</div>`,className:'',iconAnchor:[17,34]});
+  const client=job.client||'Client';
+  const popup=`<div style="min-width:200px;font-family:system-ui">
+    <div style="font-weight:800;font-size:15px;margin-bottom:3px">${idx+1}. ${client}</div>
+    <div style="font-size:12px;color:#888;margin-bottom:10px">${job.address||''}</div>
+    <div style="display:flex;gap:6px">
+      <button onclick="navigateToJob(${lat},${lng},'')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">🗺 Navigate</button>
+      ${wazeEnabled?`<button onclick="wazeToJob(${lat},${lng})" style="background:#33ccff;color:#000;border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">Waze</button>`:''}
+    </div></div>`;
+  const marker=L.marker([lat,lng],{icon}).addTo(tradieMap).bindPopup(popup,{maxWidth:270});
+  mapMarkers.push(marker);
+  bounds.push([lat,lng]);
+}
+
+function geocodeAddress(address, cb) {
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address+', Australia')}&limit=1&countrycodes=au`,{headers:{'Accept-Language':'en','User-Agent':'TradieMate-Lite/1.0'}})
+  .then(r=>r.json()).then(d=>{ if(d&&d[0]) cb(parseFloat(d[0].lat),parseFloat(d[0].lon)); }).catch(()=>{});
+}
+
+// LITE: 2-stop max route
+function optimiseRoute() {
+  let jobs = mapMarkers.map((m,i)=>({latlng:m.getLatLng(),label:`Stop ${i+1}`}));
+  if (jobs.length > 2) {
+    showUpgradeBanner('Solo unlocks unlimited route optimisation for your full day.');
+    jobs = jobs.slice(0,2);
+  }
+  if (jobs.length < 2) { showToast('Need 2 jobs on map to plan a route','info'); return; }
+  // Simple nearest-neighbour for 2 stops
+  const ordered = jobs;
+  drawRoute([{lat:userLat,lng:userLng},...ordered.map(j=>({lat:j.latlng.lat,lng:j.latlng.lng}))]);
+  showRouteSummary(ordered);
+  showToast('Route planned 🔀','success');
+}
+
+function drawRoute(waypoints) {
+  if (routeLayer) tradieMap.removeLayer(routeLayer);
+  routeWaypoints = waypoints;
+  const coords = waypoints.map(w=>`${w.lng},${w.lat}`).join(';');
+  fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
+  .then(r=>r.json()).then(data=>{
+    if (!data.routes?.[0]) return;
+    const route=data.routes[0];
+    routeLayer=L.geoJSON(route.geometry,{style:{color:'#f97316',weight:5,opacity:.85,lineCap:'round',lineJoin:'round'}}).addTo(tradieMap);
+    tradieMap.fitBounds(routeLayer.getBounds(),{padding:[50,50]});
+    const km=Math.round(route.distance/100)/10, mins=Math.round(route.duration/60);
+    const time=mins>=60?`${Math.floor(mins/60)}h ${mins%60}m`:`${mins} min`;
+    document.getElementById('route-info').textContent=`${waypoints.length-1} stops · ${km} km · ${time}`;
+    document.getElementById('route-summary').style.display='block';
+  }).catch(()=>showToast('Route failed — check connection','warn'));
+}
+
+function showRouteSummary(stops) {
+  document.getElementById('route-stops').innerHTML=stops.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0">
+      <span style="background:#f97316;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">${i+1}</span>
+      <span style="flex:1;color:var(--muted)">${s.label}</span>
+      <button onclick="navigateToJob(${s.latlng.lat},${s.latlng.lng},'')" style="background:none;border:none;color:#f97316;font-size:11px;font-weight:700;cursor:pointer">Go →</button>
+    </div>`).join('');
+}
+
+function startNavigation() {
+  const dest=routeWaypoints[1]||mapMarkers[0]?.getLatLng();
+  if (!dest) return;
+  navigateToJob(dest.lat||dest.lat, dest.lng||dest.lng, '');
+}
+
+function navigateToJob(lat,lng,address) {
+  if (wazeEnabled) {
+    window.location.href=`waze://?ll=${lat},${lng}&navigate=yes`;
+    setTimeout(()=>window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`,'_blank'),1500);
+  } else if (/Android/i.test(navigator.userAgent)) {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,'_blank');
+  } else {
+    window.location.href=`maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+    setTimeout(()=>window.open(`https://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`,'_blank'),800);
+  }
+}
+
+function wazeToJob(lat,lng) {
+  window.location.href=`waze://?ll=${lat},${lng}&navigate=yes`;
+  setTimeout(()=>window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`,'_blank'),1500);
+}
+
+// POI Layers
+function togglePOILayer(type,btn) {
+  if (activePOILayers.has(type)) {
+    activePOILayers.delete(type);
+    poiMarkers.filter(m=>m.poiType===type).forEach(m=>tradieMap.removeLayer(m));
+    poiMarkers=poiMarkers.filter(m=>m.poiType!==type);
+    if(btn) btn.classList.remove('active-badge');
+  } else {
+    activePOILayers.add(type);
+    if(btn) btn.classList.add('active-badge');
+    loadPOILayer(type);
+  }
+}
+
+function loadPOILayer(type) {
+  if (type==='fav') { renderFavPOIs(); return; }
+  const pad=0.07;
+  const bbox=`${userLat-pad},${userLng-pad},${userLat+pad},${userLng+pad}`;
+  let q='';
+  if (type==='fuel') q=`node["amenity"="fuel"](${bbox});`;
+  else if (type==='food') q=`node["amenity"~"cafe|fast_food|restaurant|bakery"](${bbox});`;
+  else if (type==='supplier') {
+    const p=JSON.parse(localStorage.getItem('tm_profile')||localStorage.getItem('tm_lite_profile')||'{}');
+    const sup=TRADE_SUPPLIERS[p.trade||p.trade_type]||TRADE_SUPPLIERS['default'];
+    q=`node[${sup.query}](${bbox});`;
+  }
+  if (!q) return;
+  fetch(`https://overpass-api.de/api/interpreter?data=[out:json];${encodeURIComponent(q)}out body;`)
+  .then(r=>r.json()).then(data=>{
+    const emoji=type==='fuel'?'⛽':type==='food'?'🍔':'🔧';
+    (data.elements||[]).slice(0,20).forEach(el=>{
+      if (!el.lat||!el.lon) return;
+      const name=el.tags?.name||(type==='fuel'?'Petrol Station':type==='food'?'Food Stop':'Trade Supplier');
+      const km=Math.round(Math.hypot(el.lat-userLat,el.lon-userLng)*111*10)/10;
+      const icon=L.divIcon({html:`<div style="font-size:22px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.7))">${emoji}</div>`,className:'',iconAnchor:[11,11]});
+      const marker=L.marker([el.lat,el.lon],{icon}).addTo(tradieMap).bindPopup(`
+        <div style="min-width:160px"><b>${emoji} ${name}</b>${el.tags?.brand?`<br><small>${el.tags.brand}</small>`:''}<br><small style="color:#888">~${km} km away</small>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <button onclick="navigateToJob(${el.lat},${el.lon},'')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Navigate →</button>
+          <button onclick="saveFavPOI(${el.lat},${el.lon},'${name.replace(/'/g,"\\'")}','${emoji}')" style="background:#1a1d27;color:#f97316;border:1px solid #f97316;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">★ Save</button>
+        </div></div>`);
+      marker.poiType=type; poiMarkers.push(marker);
+    });
+    showToast(`${data.elements?.length||0} ${type} stops nearby`,'info');
+  }).catch(()=>showToast('POI search unavailable','warn'));
+}
+
+function saveFavPOI(lat,lng,name,emoji) {
+  favouritePOIs.push({lat,lng,name,emoji,id:Date.now()});
+  localStorage.setItem('tm_fav_pois',JSON.stringify(favouritePOIs));
+  showToast(`${emoji} ${name} saved ★`,'success');
+  tradieMap.closePopup();
+}
+
+function renderFavPOIs() {
+  if (!tradieMap) return;
+  poiMarkers.filter(m=>m.poiType==='fav').forEach(m=>tradieMap.removeLayer(m));
+  favouritePOIs.forEach(p=>{
+    const icon=L.divIcon({html:`<div style="font-size:20px">${p.emoji}<span style="font-size:10px">⭐</span></div>`,className:'',iconAnchor:[10,10]});
+    const marker=L.marker([p.lat,p.lng],{icon}).addTo(tradieMap).bindPopup(`<div><b>${p.emoji} ${p.name}</b><br><small style="color:#888">Saved</small><div style="margin-top:8px;display:flex;gap:6px"><button onclick="navigateToJob(${p.lat},${p.lng},'')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Navigate →</button><button onclick="removeFavPOI(${p.id})" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Remove</button></div></div>`);
+    marker.poiType='fav'; poiMarkers.push(marker);
+  });
+}
+
+function removeFavPOI(id) {
+  favouritePOIs=favouritePOIs.filter(p=>p.id!==id);
+  localStorage.setItem('tm_fav_pois',JSON.stringify(favouritePOIs));
+  poiMarkers.filter(m=>m.poiType==='fav').forEach(m=>tradieMap.removeLayer(m));
+  poiMarkers=poiMarkers.filter(m=>m.poiType!=='fav');
+  renderFavPOIs(); tradieMap.closePopup();
+  showToast('Removed','info');
+}
+
+async function loadWazeAlerts() {
+  wazeAlertMarkers.forEach(m=>tradieMap.removeLayer(m)); wazeAlertMarkers=[];
+  const pad=0.15;
+  const bbox=`${userLat-pad},${userLng-pad},${userLat+pad},${userLng+pad}`;
+  try {
+    const res=await fetch(`https://www.waze.com/row-rtserver/web/TGeoRSS?tk=community&bbox=${bbox}&types=alerts,traffic&format=JSON`);
+    const data=await res.json();
+    const typeMap={POLICE:'🚔',HAZARD:'⚠️',ACCIDENT:'🚨',JAM:'🚦',ROAD_CLOSED:'🚧'};
+    let count=0;
+    (data.alerts||[]).forEach(alert=>{
+      const emoji=typeMap[alert.type]||'⚠️';
+      const icon=L.divIcon({html:`<div style="font-size:22px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.7))">${emoji}</div>`,className:'',iconAnchor:[11,11]});
+      const age=Math.round((Date.now()-alert.pubMillis)/60000);
+      const marker=L.marker([alert.location.y,alert.location.x],{icon}).addTo(tradieMap).bindPopup(`<b>${emoji} ${alert.type}</b><br><small>${alert.street||'Unknown road'}</small><br><small style="color:#ef4444">Reported ${age}min ago</small><br><span style="font-size:10px;color:#888">Community report · Unverified</span>`);
+      wazeAlertMarkers.push(marker); count++;
+    });
+    if (count>0) showToast(`🚔 ${count} Waze alerts nearby`,'info');
+  } catch(e) {}
+}
+
+function connectGoogleMaps() { openModal('modal-map-settings'); }
+function connectWaze() { openModal('modal-map-settings'); }
+
+function saveGoogleMapsKey() {
+  const key=document.getElementById('gmap-key-input')?.value.trim();
+  if (!key) return;
+  localStorage.setItem('tm_gmaps_key',key);
+  googleMapsKey=key;
+  document.getElementById('badge-gmaps')?.classList.add('connected-badge');
+  if (tradieMap) setMapTiles();
+  showToast('Google Maps connected ✓','success');
+}
+
+function saveGoogleMapsKeyModal() {
+  const key=document.getElementById('gmap-key-input-modal')?.value.trim();
+  if (!key) { showToast('Enter a valid API key','warn'); return; }
+  localStorage.setItem('tm_gmaps_key',key);
+  googleMapsKey=key;
+  document.getElementById('badge-gmaps')?.classList.add('connected-badge');
+  if (tradieMap) setMapTiles();
+  closeModal('modal-map-settings');
+  showToast('Google Maps connected ✓','success');
+}
+
+function enableWaze() {
+  wazeEnabled=true;
+  localStorage.setItem('tm_waze_enabled','true');
+  document.getElementById('badge-waze')?.classList.add('connected-badge');
+  const btn=document.getElementById('btn-waze-connect');
+  if (btn) btn.textContent='✓ Waze Enabled';
+  if (document.getElementById('waze-toggle')) document.getElementById('waze-toggle').checked=true;
+  loadWazeAlerts();
+  showToast('Waze alerts enabled ✓','success');
+}
+
+function saveMapPrefs() {
+  const el=document.getElementById('pref-avoid-tolls');
+  if(el) localStorage.setItem('tm_map_avoid_tolls',el.checked);
+}
+
+// ── VOICE CONTROL ─────────────────────────────────────
+function initMapVoice() {
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if (!SR) return;
+  mapVoiceRecognition=new SR();
+  mapVoiceRecognition.continuous=false; mapVoiceRecognition.lang='en-AU'; mapVoiceRecognition.interimResults=false;
+  mapVoiceRecognition.onresult=e=>handleMapVoiceCommand(e.results[0][0].transcript.toLowerCase().trim());
+  mapVoiceRecognition.onend=()=>{ mapVoiceActive=false; const b=document.getElementById('btn-map-voice'); if(b){b.textContent='🎙';b.style.background='';} };
+  mapVoiceRecognition.onerror=()=>{ mapVoiceActive=false; const b=document.getElementById('btn-map-voice'); if(b){b.textContent='🎙';b.style.background='';} };
+}
+
+function toggleMapVoice() {
+  if (!mapVoiceRecognition) { showToast('Voice not supported on this device','warn'); return; }
+  const btn=document.getElementById('btn-map-voice');
+  if (mapVoiceActive) {
+    mapVoiceRecognition.stop(); mapVoiceActive=false;
+    if(btn){btn.textContent='🎙';btn.style.background='';}
+  } else {
+    mapVoiceRecognition.start(); mapVoiceActive=true;
+    if(btn){btn.textContent='🔴';btn.style.background='#ef4444';}
+    showToast('Listening…','info');
+  }
+}
+
+function handleMapVoiceCommand(cmd) {
+  if (/next job|navigate|first stop/.test(cmd)) {
+    if (mapMarkers.length>0) { const ll=mapMarkers[0].getLatLng(); navigateToJob(ll.lat,ll.lng,''); speak('Navigating to job one'); }
+    else speak('No jobs on the map today');
+    return;
+  }
+  const jobMatch=cmd.match(/job\s*(\d+)/);
+  if (jobMatch) {
+    const n=parseInt(jobMatch[1])-1;
+    if (mapMarkers[n]) { const ll=mapMarkers[n].getLatLng(); navigateToJob(ll.lat,ll.lng,''); speak(`Navigating to job ${n+1}`); }
+    else speak(`Job ${n+1} not found`);
+    return;
+  }
+  if (/fuel|petrol|servo/.test(cmd)) { togglePOILayer('fuel',document.querySelector('[data-poi="fuel"]')); speak('Showing nearby petrol stations'); return; }
+  if (/food|lunch|smoko|coffee|eat/.test(cmd)) { togglePOILayer('food',document.querySelector('[data-poi="food"]')); speak('Showing food stops near you'); return; }
+  if (/supplier|hardware/.test(cmd)) { togglePOILayer('supplier',document.querySelector('[data-poi="supplier"]')); speak('Showing trade suppliers'); return; }
+  if (/waze|police|alerts/.test(cmd)) { if(wazeEnabled){loadWazeAlerts();speak('Loading Waze alerts');}else speak('Enable Waze in settings first'); return; }
+  if (/my location|centre|center/.test(cmd)) { tradieMap.setView([userLat,userLng],14); speak('Centred on your location'); return; }
+  if (/zoom in/.test(cmd)) { tradieMap.zoomIn(); speak('Zooming in'); return; }
+  if (/zoom out/.test(cmd)) { tradieMap.zoomOut(); speak('Zooming out'); return; }
+  if (/optimis|best route/.test(cmd)) { optimiseRoute(); speak('Planning your route'); return; }
+  speak('Try: next job, show fuel, smoko stops, or zoom in');
+}
+
+function speak(text) {
+  if (!text||!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-AU'; u.rate=1.05; u.pitch=1;
+  window.speechSynthesis.speak(u);
+}
+
+// ════════════════════════════════════════════════════
+// END TRADIEMATE LITE
+// Built by Vex 🦊 @ AMC inNOVAtions
+// ════════════════════════════════════════════════════
+</script>
+</body>
+</html>
