@@ -464,14 +464,52 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <input type="checkbox" id="waze-toggle" onchange="if(this.checked)enableWaze()"> Enable Waze Alerts
         </label>
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px">🚔 Police checkpoints, accidents & hazards on your map. Community-reported — not guaranteed.</div>
-        <div class="form-section">Upgrade</div>
-        <div style="background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(249,115,22,.3);border-radius:var(--radius);padding:16px;margin-bottom:12px">
-          <div style="font-size:16px;font-weight:800;margin-bottom:6px">TradieMate Solo</div>
-          <div style="font-size:13px;color:var(--muted2);line-height:1.6;margin-bottom:14px">Unlimited clients · Unlimited invoices · BAS calculator · AI quotes · Rate cards · Recurring jobs · Voice control · Full route planning · Weather alerts</div>
-          <div style="font-size:20px;font-weight:800;color:var(--orange);margin-bottom:4px">$99 <span style="font-size:13px;color:var(--muted);font-weight:400">/month</span></div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">+ $399 setup fee · Cancel anytime*</div>
-          <button class="btn-primary" onclick="window.open('https://amack-cpu.github.io/Trademate-/','_blank')">Upgrade to Solo →</button>
-          <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center">*Cancel anytime. AI features deactivate on cancellation. Your data stays on device.</div>
+        <div class="form-section">Upgrade to Solo</div>
+
+        <!-- 90-day countdown badge -->
+        <div id="upgrade-countdown-bar" style="display:none;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:8px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;font-size:12px">
+          <span>⏳ Lite member discount expires in <b id="days-remaining" style="color:var(--orange)">—</b> days</span>
+          <span style="color:var(--green);font-weight:700">Save $219</span>
+        </div>
+
+        <!-- Upgrade card — dynamic content rendered by JS -->
+        <div id="upgrade-card" style="background:linear-gradient(135deg,#1a1d27,#22263a);border:1px solid rgba(249,115,22,.35);border-radius:var(--radius);padding:18px;margin-bottom:12px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+            <div>
+              <div style="font-size:17px;font-weight:800">TradieMate Solo</div>
+              <div id="upgrade-badge" style="display:inline-block;background:var(--green);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;margin-top:4px;letter-spacing:.5px">LITE MEMBER DEAL</div>
+            </div>
+            <div id="upgrade-saving-pill" style="background:rgba(34,197,94,.15);color:var(--green);font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap">Save $219</div>
+          </div>
+
+          <div style="font-size:12px;color:var(--muted2);line-height:1.7;margin-bottom:14px">
+            ✓ Unlimited clients & invoices<br>
+            ✓ BAS calculator + ATO field codes<br>
+            ✓ AI quote builder<br>
+            ✓ Rate cards & recurring jobs<br>
+            ✓ Full AMC Navigation — unlimited routes<br>
+            ✓ Unlimited AI advisor
+          </div>
+
+          <!-- Pricing — JS fills this in -->
+          <div id="upgrade-price-block" style="background:rgba(0,0,0,.2);border-radius:10px;padding:12px;margin-bottom:14px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Your upgrade price</div>
+            <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:4px">
+              <div id="upgrade-setup-price" style="font-size:26px;font-weight:800;color:var(--orange)">$279</div>
+              <div style="font-size:13px;color:var(--muted);padding-bottom:4px">today (setup difference)</div>
+            </div>
+            <div id="upgrade-monthly-line" style="font-size:13px;color:var(--muted2)">+ <b style="color:var(--text)">first month free</b>, then $99/mo</div>
+            <div id="upgrade-comparison" style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">vs. $399 + $99/mo going direct · <span style="color:var(--green)">You save $219 in year one</span></div>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">🗓 Monthly billing starts 1st of next month after upgrade</div>
+          <button class="btn-primary" onclick="handleUpgradeClick()">Upgrade to Solo — Save $219 →</button>
+          <div style="font-size:10px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5">*Cancel anytime. AI features deactivate on cancellation. Your data stays on your device.<br>Setup fee is non-refundable.</div>
+        </div>
+
+        <!-- After 90 days — standard pricing shown -->
+        <div id="upgrade-expired-note" style="display:none;font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px">
+          Lite member discount has expired. <span style="color:var(--orange)">Contact us</span> if you have questions.
         </div>
         <button class="btn-sm btn-ghost" onclick="saveSettings()" style="width:100%;margin-bottom:8px">Save Settings</button>
       </div>
@@ -604,6 +642,7 @@ function showScreen(name) {
   const nav = document.getElementById('nav-' + name);
   if (nav) nav.classList.add('active');
   if (name === 'maps') setTimeout(initMap, 120);
+  if (name === 'settings') initUpgradeCard();
   if (name === 'ai') setTimeout(() => { const c = document.getElementById('chat-area'); if(c) c.scrollTop = 9999; }, 100);
 }
 
@@ -930,8 +969,10 @@ function sendAIMessage() {
 function showUpgradeBanner(msg) {
   const banner = document.getElementById('upgrade-banner');
   const text = document.getElementById('upgrade-text');
-  if (text) text.innerHTML = `<b>Upgrade to Solo</b> — ${msg}`;
-  if (banner) { banner.style.display='flex'; setTimeout(()=>banner.style.display='none', 6000); }
+  const days = getDaysRemainingOnDeal();
+  const dealMsg = days > 0 ? ` <span style="color:var(--green)">Save $219 — ${days} days left on your deal.</span>` : '';
+  if (text) text.innerHTML = `<b>Upgrade to Solo</b> — ${msg}${dealMsg}`;
+  if (banner) { banner.style.display='flex'; setTimeout(()=>banner.style.display='none', 7000); }
 }
 
 // ── WEATHER ──────────────────────────────────────────
@@ -1365,6 +1406,80 @@ function speak(text) {
   const u=new SpeechSynthesisUtterance(text);
   u.lang='en-AU'; u.rate=1.05; u.pitch=1;
   window.speechSynthesis.speak(u);
+}
+
+// ── BILLING & UPGRADE LOGIC ──────────────────────────
+
+function getLiteActivationDate() {
+  let d = localStorage.getItem('tm_lite_activated');
+  if (!d) {
+    d = new Date().toISOString();
+    localStorage.setItem('tm_lite_activated', d);
+  }
+  return new Date(d);
+}
+
+function getDaysRemainingOnDeal() {
+  const activated = getLiteActivationDate();
+  const expiry = new Date(activated);
+  expiry.setDate(expiry.getDate() + 90);
+  const now = new Date();
+  const diff = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diff);
+}
+
+function initUpgradeCard() {
+  const days = getDaysRemainingOnDeal();
+  const countdownBar = document.getElementById('upgrade-countdown-bar');
+  const daysEl = document.getElementById('days-remaining');
+  const badge = document.getElementById('upgrade-badge');
+  const savingPill = document.getElementById('upgrade-saving-pill');
+  const setupPrice = document.getElementById('upgrade-setup-price');
+  const monthlyLine = document.getElementById('upgrade-monthly-line');
+  const comparison = document.getElementById('upgrade-comparison');
+  const expiredNote = document.getElementById('upgrade-expired-note');
+
+  if (days > 0) {
+    // Within 90 days — Lite member deal
+    if (countdownBar) { countdownBar.style.display = 'flex'; }
+    if (daysEl) daysEl.textContent = days;
+    if (badge) { badge.textContent = 'LITE MEMBER DEAL'; badge.style.background = 'var(--green)'; }
+    if (savingPill) savingPill.style.display = 'block';
+    if (setupPrice) setupPrice.textContent = '$279';
+    if (monthlyLine) monthlyLine.innerHTML = '+ <b style="color:var(--text)">first month free</b>, then $99/mo from 1st of next month';
+    if (comparison) comparison.innerHTML = 'vs. $399 + $99/mo going direct · <span style="color:var(--green)">You save $219 in year one</span>';
+    if (expiredNote) expiredNote.style.display = 'none';
+  } else {
+    // After 90 days — standard pricing, no Lite credit
+    if (countdownBar) countdownBar.style.display = 'none';
+    if (badge) { badge.textContent = 'UPGRADE'; badge.style.background = 'var(--orange)'; }
+    if (savingPill) savingPill.style.display = 'none';
+    if (setupPrice) setupPrice.textContent = '$399';
+    if (monthlyLine) monthlyLine.innerHTML = '+ $99/mo from 1st of next month';
+    if (comparison) comparison.style.display = 'none';
+    if (expiredNote) expiredNote.style.display = 'block';
+  }
+}
+
+function handleUpgradeClick() {
+  const days = getDaysRemainingOnDeal();
+  const params = days > 0
+    ? '?plan=solo&from=lite&deal=true&setup=279&first_month_free=true'
+    : '?plan=solo&from=lite&setup=399';
+  window.open(UPGRADE_URL + params, '_blank');
+}
+
+// ── BILLING COPY HELPERS ─────────────────────────────
+// Lite: $120 setup today, $25/mo from 1st of next month
+// Solo direct: $399 setup today, $99/mo from 1st of next month
+// Lite → Solo (within 90 days): $279 today, first month free, then $99/mo
+// Lite → Solo (after 90 days): $399 setup, $99/mo from 1st of next month
+// Solo → Teams: same pattern — credit what paid, difference + first month free (TBD)
+
+function getNextBillingDate() {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return first.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
 }
 
 // ════════════════════════════════════════════════════
