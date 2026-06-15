@@ -488,7 +488,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
             ✓ AI quote builder<br>
             ✓ Rate cards & recurring jobs<br>
             ✓ Full AMC Navigation — unlimited routes<br>
-            ✓ Unlimited AI advisor
+            ✓ Unlimited AI advisor<br>
+            ✓ <b style="color:var(--green)">First 2 months free</b> — pay $279 today, billing starts month 3
           </div>
 
           <!-- Pricing — JS fills this in -->
@@ -503,7 +504,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           </div>
 
           <div style="font-size:11px;color:var(--muted);margin-bottom:6px">🗓 Monthly billing starts 1st of next month after upgrade</div>
-          <button class="btn-primary" onclick="handleUpgradeClick()">Upgrade to Solo — Save $219 →</button>
+          <button class="btn-primary" onclick="handleUpgradeClick()">Upgrade to Solo — 2 months free →</button>
           <div style="font-size:10px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5">*Cancel anytime. AI features deactivate on cancellation. Your data stays on your device.<br>Setup fee is non-refundable.</div>
         </div>
 
@@ -931,9 +932,9 @@ function updateAIBadge() {
 
 const AI_RESPONSES = {
   price:  'For pricing in Australia, a good rule of thumb is to calculate your cost rate (materials + labour + overheads) then add 20–30% margin. Most tradies undercharge — if you haven\'t reviewed rates in 12 months, you\'re probably behind CPI.',
-  quote:  'A solid quote includes: scope of work clearly described, material allowances, exclusions listed, payment terms, and an expiry date. Upgrade to Solo for AI-assisted quote generation.',
+  quote:  'A solid quote includes: scope of work clearly described, material allowances, exclusions listed, payment terms, and an expiry date. Upgrade to Solo — 2 months free on signup.',
   invoice:'Always include your ABN, payment terms (7 or 14 days is standard), bank details, and a clear description. Late payment? Add a 2% per month clause to your T&Cs.',
-  gst:    'You must register for GST once your annual turnover hits $75,000. Once registered, add 10% to all invoices and lodge a BAS quarterly. Upgrade to Solo for automatic BAS calculation.',
+  gst:    'You must register for GST once your annual turnover hits $75,000. Once registered, add 10% to all invoices and lodge a BAS quarterly. Upgrade to Solo — first 2 months free.',
   default:'Good question. For detailed trade-specific advice, Upgrade to Solo for unlimited AI support. Here\'s a general answer: always document your scope of work clearly, keep receipts for everything, and review your rates at least once a year.'
 };
 
@@ -1446,8 +1447,8 @@ function initUpgradeCard() {
     if (badge) { badge.textContent = 'LITE MEMBER DEAL'; badge.style.background = 'var(--green)'; }
     if (savingPill) savingPill.style.display = 'block';
     if (setupPrice) setupPrice.textContent = '$279';
-    if (monthlyLine) monthlyLine.innerHTML = '+ <b style="color:var(--text)">first month free</b>, then $99/mo from 1st of next month';
-    if (comparison) comparison.innerHTML = 'vs. $399 + $99/mo going direct · <span style="color:var(--green)">You save $219 in year one</span>';
+    if (monthlyLine) monthlyLine.innerHTML = '+ <b style="color:var(--green)">2 months free</b>, then $99/mo from month 3';
+    if (comparison) comparison.innerHTML = 'vs. $399 direct + 2 months free · <span style="color:var(--green)">Same great deal, already credited $120</span>';
     if (expiredNote) expiredNote.style.display = 'none';
   } else {
     // After 90 days — standard pricing, no Lite credit
@@ -1455,7 +1456,7 @@ function initUpgradeCard() {
     if (badge) { badge.textContent = 'UPGRADE'; badge.style.background = 'var(--orange)'; }
     if (savingPill) savingPill.style.display = 'none';
     if (setupPrice) setupPrice.textContent = '$399';
-    if (monthlyLine) monthlyLine.innerHTML = '+ $99/mo from 1st of next month';
+    if (monthlyLine) monthlyLine.innerHTML = '+ <b style="color:var(--green)">2 months free</b>, then $99/mo from month 3';
     if (comparison) comparison.style.display = 'none';
     if (expiredNote) expiredNote.style.display = 'block';
   }
@@ -1470,11 +1471,11 @@ function handleUpgradeClick() {
 }
 
 // ── BILLING COPY HELPERS ─────────────────────────────
-// Lite: $120 setup today, $25/mo from 1st of next month
-// Solo direct: $399 setup today, $99/mo from 1st of next month
-// Lite → Solo (within 90 days): $279 today, first month free, then $99/mo
-// Lite → Solo (after 90 days): $399 setup, $99/mo from 1st of next month
-// Solo → Teams: same pattern — credit what paid, difference + first month free (TBD)
+// Lite: $120 setup today, $25/mo from month 3
+// Solo direct: $399 setup today, 2 months free, $99/mo from month 3
+// Lite → Solo (within 90 days): $279 today, 2 months free, then $99/mo from month 3
+// Lite → Solo (after 90 days): $399 setup, 2 months free, $99/mo from month 3
+// Solo → Teams: same pattern — credit what paid, difference + 2 months free (TBD)
 
 function getNextBillingDate() {
   const now = new Date();
