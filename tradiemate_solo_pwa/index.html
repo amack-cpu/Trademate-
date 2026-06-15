@@ -728,48 +728,67 @@ select.form-input option{background:var(--card2)}
     </div>
 
 
-    <!-- ═══ MAPS SCREEN ═══ -->
+    <!-- ═══ MAPS SCREEN — AMC Navigation ═══ -->
     <div class="screen" id="screen-maps" style="padding:0;display:flex;flex-direction:column;height:100%">
+
+      <!-- Header -->
       <div class="sec-header screen-pad" style="flex-shrink:0">
-        <div class="sec-title">🗺 Job Map</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="icon-btn" onclick="openModal('modal-map-settings')" title="Map Settings">⚙️</button>
-          <button class="icon-btn" onclick="optimiseRoute()" title="Optimise Route" id="btn-optimise">🔀</button>
-          <button class="icon-btn" onclick="refreshMap()" title="Refresh">🔄</button>
+        <div>
+          <div class="sec-title">🗺 AMC Navigation</div>
+          <div style="font-size:10px;color:#f97316;font-weight:700;letter-spacing:.3px">by Vex @ AMC inNOVAtions</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="icon-btn" id="btn-map-voice" onclick="toggleMapVoice()" title="Voice control" style="transition:background .2s">🎙</button>
+          <button class="icon-btn" onclick="optimiseRoute()" title="Optimise route">🔀</button>
+          <button class="icon-btn" onclick="tradieMap&&tradieMap.setView([userLat,userLng],14)" title="My location">📍</button>
+          <button class="icon-btn" onclick="openModal('modal-map-settings')" title="Settings">⚙️</button>
         </div>
       </div>
 
-      <!-- Map filter pills -->
-      <div class="pill-tabs screen-pad" style="flex-shrink:0;padding-top:0">
+      <!-- Filter pills (Solo: today/week/all | Lite: today only) -->
+      <div class="pill-tabs screen-pad" style="flex-shrink:0;padding-top:0" id="map-filter-tabs">
         <div class="pill-tab active" onclick="setMapFilter('today',this)">Today</div>
-        <div class="pill-tab" onclick="setMapFilter('week',this)">This Week</div>
-        <div class="pill-tab" onclick="setMapFilter('all',this)">All Jobs</div>
+        <div class="pill-tab" onclick="setMapFilter('week',this)" id="map-pill-week">This Week</div>
+        <div class="pill-tab" onclick="setMapFilter('all',this)" id="map-pill-all">All Jobs</div>
       </div>
 
-      <!-- Map container -->
+      <!-- AI suggestion banner (subtle, Solo only) -->
+      <div id="ai-map-suggestion" style="display:none;background:rgba(249,115,22,.1);border-top:1px solid rgba(249,115,22,.2);border-bottom:1px solid rgba(249,115,22,.2);padding:8px 16px;font-size:12px;color:#f97316;flex-shrink:0"></div>
+
+      <!-- POI quick-toggle toolbar -->
+      <div style="background:var(--card);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;gap:6px;flex-shrink:0;overflow-x:auto" id="poi-toolbar">
+        <button class="map-badge" data-poi="fuel" onclick="togglePOILayer('fuel',this)">⛽ Fuel</button>
+        <button class="map-badge" data-poi="food" onclick="togglePOILayer('food',this)">🍔 Food</button>
+        <button class="map-badge" data-poi="supplier" onclick="togglePOILayer('supplier',this)" id="badge-supplier">🔧 Suppliers</button>
+        <button class="map-badge" data-poi="fav" onclick="togglePOILayer('fav',this)">⭐ Saved</button>
+        <button class="map-badge" id="badge-waze-alerts" onclick="wazeEnabled?loadWazeAlerts():connectWaze()">🚔 Waze</button>
+        <button class="map-badge" id="badge-traffic" onclick="toggleTrafficLayer()">🚦 Traffic</button>
+      </div>
+
+      <!-- The Map -->
       <div id="tradie-map" style="flex:1;min-height:0;z-index:1"></div>
 
-      <!-- Route summary bar -->
-      <div id="route-summary" style="display:none;background:var(--card);border-top:1px solid var(--border);padding:12px 16px;flex-shrink:0;font-size:13px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div id="route-info" style="color:var(--muted)">No route calculated</div>
-          <button class="btn-sm btn-orange" onclick="startNavigation()">Navigate →</button>
+      <!-- Route summary strip -->
+      <div id="route-summary" style="display:none;background:var(--card);border-top:2px solid #f97316;padding:10px 14px;flex-shrink:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div id="route-info" style="font-size:13px;font-weight:700;color:var(--text)">—</div>
+          <button class="btn-sm btn-orange" onclick="startNavigation()">Start →</button>
         </div>
-        <div id="route-stops" style="margin-top:8px;display:flex;flex-direction:column;gap:4px"></div>
+        <div id="route-stops"></div>
       </div>
 
       <!-- Integration badges -->
-      <div id="map-integrations" style="background:var(--card);border-top:1px solid var(--border);padding:8px 16px;display:flex;gap:8px;flex-shrink:0;overflow-x:auto">
-        <div id="badge-osm" class="map-badge active-badge" title="OpenStreetMap — always on">🗺 OSM</div>
-        <div id="badge-gmaps" class="map-badge" onclick="connectGoogleMaps()" title="Connect Google Maps for traffic">
-          <img src="https://maps.google.com/mapfiles/ms/icons/red-dot.png" style="height:14px;width:14px;object-fit:contain"> Google Maps
+      <div style="background:var(--card);border-top:1px solid var(--border);padding:6px 12px;display:flex;gap:6px;flex-shrink:0;overflow-x:auto;align-items:center">
+        <div class="map-badge active-badge" title="OpenStreetMap — always on">🗺 OSM</div>
+        <div class="map-badge" id="badge-gmaps" onclick="connectGoogleMaps()" title="Connect Google Maps">
+          📍 Google Maps
         </div>
-        <div id="badge-waze" class="map-badge" onclick="connectWaze()" title="Connect Waze for police alerts">🚔 Waze Alerts</div>
-        <div id="badge-traffic" class="map-badge" onclick="toggleTraffic()" title="Toggle traffic layer">🚦 Traffic</div>
+        <div class="map-badge" id="badge-waze" onclick="connectWaze()" title="Waze alerts">🚔 Waze</div>
+        <div style="margin-left:auto;font-size:10px;color:var(--muted)">AMC Navigation</div>
       </div>
     </div>
 
-    <!-- Map Settings Modal -->
+        <!-- Map Settings Modal -->
     <div class="modal-overlay" id="modal-map-settings">
       <div class="modal-box" style="max-width:420px">
         <div class="modal-header"><span class="modal-title">Map Settings</span><button class="modal-close" onclick="closeModal('modal-map-settings')">✕</button></div>
@@ -2578,82 +2597,136 @@ function toast(msg,color) {
 // ═══════════════════════════════════════════
 // MAPS MODULE
 // ═══════════════════════════════════════════
+// AMC NAVIGATION — by Vex @ AMC inNOVAtions
+// Powered by OpenStreetMap · OSRM · Overpass
+// ═══════════════════════════════════════════
 
+// ── State ──────────────────────────────────
 let tradieMap = null;
 let mapMarkers = [];
 let mapFilter = 'today';
 let routeLayer = null;
+let routeWaypoints = [];
 let wazeEnabled = false;
 let googleMapsKey = null;
 let wazeAlertMarkers = [];
+let poiMarkers = [];
 let userLocationMarker = null;
+let userLat = -33.8688, userLng = 151.2093;
+let googleTileLayer = null;
+let mapVoiceActive = false;
+let mapVoiceRecognition = null;
+let activePOILayers = new Set();
+let favouritePOIs = [];
+let mapTier = 'solo';
+let currentRouteStops = [];
 
+// Trade → supplier OSM tags
+const TRADE_SUPPLIERS = {
+  'Arborist':     { label:'Tree Suppliers', query:'name~"Stihl|Husqvarna|Arbor|Tree"' },
+  'Electrician':  { label:'Electrical Suppliers', query:'name~"Haymans|Rexel|Electrical|NHP"' },
+  'Plumber':      { label:'Plumbing Suppliers', query:'name~"Reece|Tradelink|Plumb"' },
+  'Builder':      { label:'Builders Suppliers', query:'name~"Bunnings|Beaumont|Mitre 10"' },
+  'Painter':      { label:'Paint Suppliers', query:'name~"Dulux|Taubmans|Haymes|Wattyl"' },
+  'Carpenter':    { label:'Timber Suppliers', query:'name~"Bunnings|Carter|Hyne|Timber"' },
+  'Concreter':    { label:'Concrete Suppliers', query:'name~"Boral|Hanson|Holcim|Concrete"' },
+  'Tiler':        { label:'Tile Suppliers', query:'name~"Beaumont|Tile|CTM|National Tiles"' },
+  'Landscaper':   { label:'Landscape Suppliers', query:'name~"Fulton|Landscape|Garden"' },
+  'default':      { label:'Trade Suppliers', query:'shop=doityourself' }
+};
+
+// ── Init ────────────────────────────────────
 function initMap() {
+  const profile = JSON.parse(localStorage.getItem('tm_profile') || '{}');
+  mapTier = (profile.tier || 'solo').toLowerCase();
+
   if (tradieMap) {
     tradieMap.invalidateSize();
     loadMapJobs();
     return;
   }
 
-  // Default to Sydney if no location
-  const savedLat = parseFloat(localStorage.getItem('tm_home_lat') || '-33.8688');
-  const savedLng = parseFloat(localStorage.getItem('tm_home_lng') || '151.2093');
+  userLat = parseFloat(localStorage.getItem('tm_home_lat') || '-33.8688');
+  userLng = parseFloat(localStorage.getItem('tm_home_lng') || '151.2093');
+  googleMapsKey = localStorage.getItem('tm_gmaps_key');
+  wazeEnabled = localStorage.getItem('tm_waze_enabled') === 'true';
+  favouritePOIs = JSON.parse(localStorage.getItem('tm_fav_pois') || '[]');
 
   tradieMap = L.map('tradie-map', {
-    center: [savedLat, savedLng],
-    zoom: 12,
-    zoomControl: true,
+    center: [userLat, userLng],
+    zoom: 13,
+    zoomControl: false,
     attributionControl: false
   });
 
-  // Dark OSM tile layer
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
-    subdomains: 'abcd'
-  }).addTo(tradieMap);
+  L.control.zoom({ position: 'topright' }).addTo(tradieMap);
 
-  L.control.attribution({ prefix: '© <a href="https://carto.com">CARTO</a> © <a href="https://osm.org">OSM</a>' }).addTo(tradieMap);
+  setMapTiles();
 
-  // Try to get real user location
+  // AMC Navigation watermark
+  const amcCredit = L.control({ position: 'bottomleft' });
+  amcCredit.onAdd = () => {
+    const d = L.DomUtil.create('div');
+    d.innerHTML = '<div style="background:rgba(15,17,23,.8);color:#f97316;font-size:10px;font-weight:800;padding:4px 10px;border-radius:6px;letter-spacing:.5px;border:1px solid rgba(249,115,22,.3)">🦊 AMC Navigation</div>';
+    return d;
+  };
+  amcCredit.addTo(tradieMap);
+
+  // Live location watch
   if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      localStorage.setItem('tm_home_lat', userLat);
+      localStorage.setItem('tm_home_lng', userLng);
+      updateUserMarker();
+    }, null, { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 });
+
     navigator.geolocation.getCurrentPosition(pos => {
-      const { latitude: lat, longitude: lng } = pos.coords;
-      tradieMap.setView([lat, lng], 13);
-      localStorage.setItem('tm_home_lat', lat);
-      localStorage.setItem('tm_home_lng', lng);
-      addHomeMarker(lat, lng);
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      tradieMap.setView([userLat, userLng], 13);
+      updateUserMarker();
       loadMapJobs();
-      if (wazeEnabled) loadWazeAlerts(lat, lng);
-    }, () => {
-      addHomeMarker(savedLat, savedLng);
-      loadMapJobs();
-    });
+      if (wazeEnabled) loadWazeAlerts();
+    }, () => { updateUserMarker(); loadMapJobs(); });
   } else {
-    addHomeMarker(savedLat, savedLng);
+    updateUserMarker();
     loadMapJobs();
   }
 
-  // Load saved settings
-  googleMapsKey = localStorage.getItem('tm_gmaps_key');
-  wazeEnabled = localStorage.getItem('tm_waze_enabled') === 'true';
-  if (googleMapsKey) document.getElementById('badge-gmaps').classList.add('connected-badge');
-  if (wazeEnabled) document.getElementById('badge-waze').classList.add('connected-badge');
-  const gKeyInput = document.getElementById('gmap-key-input');
-  if (gKeyInput && googleMapsKey) gKeyInput.value = googleMapsKey;
+  if (googleMapsKey) document.getElementById('badge-gmaps')?.classList.add('connected-badge');
+  if (wazeEnabled) document.getElementById('badge-waze')?.classList.add('connected-badge');
   loadMapPrefs();
+  initMapVoice();
+  renderFavPOIs();
 }
 
-function addHomeMarker(lat, lng) {
-  const homeIcon = L.divIcon({
-    html: '<div style="font-size:22px;line-height:1">🏠</div>',
-    className: '', iconAnchor: [11, 22]
+function setMapTiles() {
+  if (googleTileLayer) { tradieMap.removeLayer(googleTileLayer); googleTileLayer = null; }
+  if (googleMapsKey) {
+    googleTileLayer = L.tileLayer(
+      `https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}`,
+      { subdomains: '0123', maxZoom: 20 }
+    ).addTo(tradieMap);
+  } else {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19, subdomains: 'abcd'
+    }).addTo(tradieMap);
+  }
+}
+
+function updateUserMarker() {
+  const icon = L.divIcon({
+    html: `<div style="width:16px;height:16px;background:#f97316;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 5px rgba(249,115,22,.25)"></div>`,
+    className: '', iconAnchor: [8, 8]
   });
   if (userLocationMarker) tradieMap.removeLayer(userLocationMarker);
-  userLocationMarker = L.marker([lat, lng], { icon: homeIcon })
-    .addTo(tradieMap)
-    .bindPopup('<b>Your Location</b>');
+  userLocationMarker = L.marker([userLat, userLng], { icon, zIndexOffset: 1000 })
+    .addTo(tradieMap).bindPopup('<b>📍 You are here</b>');
 }
 
+// ── Job Markers ────────────────────────────
 function setMapFilter(f, el) {
   mapFilter = f;
   document.querySelectorAll('#screen-maps .pill-tab').forEach(t => t.classList.remove('active'));
@@ -2663,270 +2736,410 @@ function setMapFilter(f, el) {
 
 function loadMapJobs() {
   if (!tradieMap) return;
-  // Clear existing job markers
   mapMarkers.forEach(m => tradieMap.removeLayer(m));
   mapMarkers = [];
+  currentRouteStops = [];
 
   const jobs = JSON.parse(localStorage.getItem('tm_jobs') || '[]');
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
   const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+  const effectiveFilter = (mapTier === 'lite') ? 'today' : mapFilter;
 
   const filtered = jobs.filter(j => {
-    if (!j.address && !j.lat) return false;
-    if (mapFilter === 'today') return (j.date||'').startsWith(todayStr) || (j.start||'').startsWith(todayStr);
-    if (mapFilter === 'week') {
-      const jDate = new Date(j.date || j.start || 0);
-      return jDate >= weekStart;
-    }
+    if (!j.address && !(j.lat && j.lng)) return false;
+    if (effectiveFilter === 'today') return (j.date||j.start||'').startsWith(todayStr);
+    if (effectiveFilter === 'week') return new Date(j.date||j.start||0) >= weekStart;
     return true;
   });
 
-  const bounds = [];
+  currentRouteStops = filtered;
+  const bounds = [[userLat, userLng]];
 
   filtered.forEach((job, idx) => {
-    // Use saved coords if available, else try to geocode
     if (job.lat && job.lng) {
-      placeJobMarker(job, idx, bounds, filtered.length);
+      placeJobMarker(job, idx, bounds);
     } else if (job.address) {
       geocodeAddress(job.address, (lat, lng) => {
         job.lat = lat; job.lng = lng;
-        placeJobMarker(job, idx, bounds, filtered.length);
+        placeJobMarker(job, idx, bounds);
+        if (bounds.length > 2) { try { tradieMap.fitBounds(bounds, { padding: [60,60] }); } catch(e){} }
       });
     }
   });
 
-  if (bounds.length > 1) {
-    setTimeout(() => {
-      try { tradieMap.fitBounds(bounds, { padding: [40, 40] }); } catch(e){}
-    }, 500);
-  }
-
-  if (filtered.length === 0) {
-    showToast('No jobs found for this period', 'info');
-  }
+  if (bounds.length > 2) setTimeout(() => { try { tradieMap.fitBounds(bounds, { padding:[60,60] }); } catch(e){} }, 700);
+  if (mapTier === 'solo' && filtered.length >= 2) setTimeout(() => checkAISuggestion(filtered), 3500);
 }
 
-function placeJobMarker(job, idx, bounds, total) {
-  const lat = parseFloat(job.lat);
-  const lng = parseFloat(job.lng);
-  if (isNaN(lat) || isNaN(lng)) return;
-
-  const colors = ['#f97316','#3b82f6','#22c55e','#a855f7','#ef4444','#eab308'];
+function placeJobMarker(job, idx, bounds) {
+  const lat = parseFloat(job.lat), lng = parseFloat(job.lng);
+  if (isNaN(lat)||isNaN(lng)) return;
+  const colors = ['#f97316','#3b82f6','#22c55e','#a855f7','#ef4444','#eab308','#06b6d4','#ec4899'];
   const color = colors[idx % colors.length];
-  const status = job.status || 'pending';
-  const statusIcon = status === 'completed' ? '✓' : status === 'active' ? '▶' : '●';
-
+  const label = job.status === 'completed' ? '✓' : String(idx+1);
   const icon = L.divIcon({
-    html: `<div style="background:${color};color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)">${idx+1}</div>`,
-    className: '', iconAnchor: [16, 32]
+    html: `<div style="background:${color};color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.5)">${label}</div>`,
+    className: '', iconAnchor: [17,34]
   });
-
-  const clientName = job.client || job.client_name || 'Client';
-  const addr = job.address || 'No address';
-  const dur = job.billed_minutes ? Math.round(job.billed_minutes/60*10)/10 + 'h billed' : '';
-  const popup = `
-    <div style="min-width:180px">
-      <b style="font-size:14px">${idx+1}. ${clientName}</b><br>
-      <span style="font-size:12px;color:#666">${addr}</span><br>
-      <span style="font-size:12px">${job.trade_type||''} ${dur ? '· '+dur : ''}</span><br>
-      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
-        <button onclick="navigateToJob('${lat}','${lng}','${(job.address||'').replace(/'/g,"")}')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Navigate →</button>
-        ${wazeEnabled ? `<button onclick="wazeToJob('${lat}','${lng}')" style="background:#33ccff;color:#000;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Waze →</button>` : ''}
-      </div>
-    </div>`;
-
-  const marker = L.marker([lat, lng], { icon }).addTo(tradieMap).bindPopup(popup);
+  const client = job.client||job.client_name||'Client';
+  const addr = (job.address||'').replace(/'/g,"\\'");
+  const dur = job.billed_minutes ? `${Math.round(job.billed_minutes/60*10)/10}h` : '';
+  const popup = `<div style="min-width:210px;font-family:system-ui">
+    <div style="font-weight:800;font-size:15px;margin-bottom:3px">${idx+1}. ${client}</div>
+    <div style="font-size:12px;color:#888;margin-bottom:3px">${job.address||''}</div>
+    <div style="font-size:12px;margin-bottom:10px">${job.trade_type||''} ${dur?'· '+dur:''} ${job.status?'· '+job.status:''}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="navigateToJob(${lat},${lng},'${addr}')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">🗺 Navigate</button>
+      <button onclick="setAsNextStop(${lat},${lng},'${client}')" style="background:#1a1d27;color:#f97316;border:1px solid #f97316;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">⭐ Next</button>
+      ${wazeEnabled?`<button onclick="wazeToJob(${lat},${lng})" style="background:#33ccff;color:#000;border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">Waze</button>`:''}
+    </div></div>`;
+  const marker = L.marker([lat,lng],{icon}).addTo(tradieMap).bindPopup(popup,{maxWidth:270});
   mapMarkers.push(marker);
-  bounds.push([lat, lng]);
+  bounds.push([lat,lng]);
 }
 
-function geocodeAddress(address, callback) {
-  const encoded = encodeURIComponent(address + ', Australia');
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`, {
-    headers: { 'Accept-Language': 'en', 'User-Agent': 'TradieMate/1.3' }
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data && data[0]) callback(parseFloat(data[0].lat), parseFloat(data[0].lon));
-  })
-  .catch(() => {});
+function geocodeAddress(address, cb) {
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address+', Australia')}&limit=1&countrycodes=au`,
+    { headers:{'Accept-Language':'en','User-Agent':'TradieMatePWA/1.3'} })
+  .then(r=>r.json()).then(d=>{ if(d&&d[0]) cb(parseFloat(d[0].lat),parseFloat(d[0].lon)); }).catch(()=>{});
 }
 
+// ── Route Optimiser ──────────────────────────
 function optimiseRoute() {
-  const jobs = [];
-  mapMarkers.forEach((m, i) => jobs.push(m.getLatLng()));
-  if (jobs.length < 2) { showToast('Add at least 2 jobs with addresses to optimise route', 'info'); return; }
-
-  // Nearest-neighbour TSP from home location
-  const homeLat = parseFloat(localStorage.getItem('tm_home_lat') || '-33.8688');
-  const homeLng = parseFloat(localStorage.getItem('tm_home_lng') || '151.2093');
-
-  let remaining = [...jobs];
-  let ordered = [];
-  let current = { lat: homeLat, lng: homeLng };
-
-  while (remaining.length > 0) {
-    let nearest = null, nearestDist = Infinity, nearestIdx = 0;
-    remaining.forEach((j, i) => {
-      const d = Math.hypot(j.lat - current.lat, j.lng - current.lng);
-      if (d < nearestDist) { nearestDist = d; nearest = j; nearestIdx = i; }
-    });
-    ordered.push(nearest);
-    current = nearest;
-    remaining.splice(nearestIdx, 1);
+  let jobs = mapMarkers.map((m,i)=>({ latlng:m.getLatLng(), label:`Stop ${i+1}` }));
+  if (mapTier==='lite' && jobs.length>2) {
+    showToast('Lite: 2-stop max. Upgrade to Solo for unlimited routing 🚀','warn');
+    jobs = jobs.slice(0,2);
   }
+  if (jobs.length<2) { showToast('Need at least 2 jobs on the map','info'); return; }
 
-  // Draw route polyline via OSM routing
-  drawRoute([{ lat: homeLat, lng: homeLng }, ...ordered]);
+  let remaining=[...jobs], ordered=[], cur={lat:userLat,lng:userLng};
+  while (remaining.length) {
+    let best=null,bestD=Infinity,bestI=0;
+    remaining.forEach((j,i)=>{ const d=Math.hypot(j.latlng.lat-cur.lat,j.latlng.lng-cur.lng); if(d<bestD){bestD=d;best=j;bestI=i;} });
+    ordered.push(best); cur={lat:best.latlng.lat,lng:best.latlng.lng}; remaining.splice(bestI,1);
+  }
+  drawRoute([{lat:userLat,lng:userLng},...ordered.map(j=>({lat:j.latlng.lat,lng:j.latlng.lng}))]);
   showRouteSummary(ordered);
+  showToast('Route optimised 🔀','success');
 }
 
 function drawRoute(waypoints) {
   if (routeLayer) tradieMap.removeLayer(routeLayer);
-  // Use OSRM public routing API
-  const coords = waypoints.map(w => `${w.lng},${w.lat}`).join(';');
+  routeWaypoints = waypoints;
+  const coords = waypoints.map(w=>`${w.lng},${w.lat}`).join(';');
   fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
-  .then(r => r.json())
-  .then(data => {
-    if (data.routes && data.routes[0]) {
-      const route = data.routes[0];
-      routeLayer = L.geoJSON(route.geometry, {
-        style: { color: '#f97316', weight: 4, opacity: 0.8, dashArray: '8,4' }
-      }).addTo(tradieMap);
-      tradieMap.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
-
-      const distKm = Math.round(route.distance / 100) / 10;
-      const mins = Math.round(route.duration / 60);
-      document.getElementById('route-info').textContent = `${waypoints.length-1} stops · ${distKm} km · ~${mins} min drive`;
-    }
-  })
-  .catch(() => showToast('Route calculation failed — check your connection', 'warn'));
+  .then(r=>r.json()).then(data=>{
+    if (!data.routes?.[0]) return;
+    const route = data.routes[0];
+    routeLayer = L.geoJSON(route.geometry,{
+      style:{color:'#f97316',weight:5,opacity:.85,lineCap:'round',lineJoin:'round'}
+    }).addTo(tradieMap);
+    tradieMap.fitBounds(routeLayer.getBounds(),{padding:[50,50]});
+    const km=Math.round(route.distance/100)/10;
+    const mins=Math.round(route.duration/60);
+    const time=mins>=60?`${Math.floor(mins/60)}h ${mins%60}m`:`${mins} min`;
+    document.getElementById('route-info').textContent=`${waypoints.length-1} stops · ${km} km · ${time}`;
+  }).catch(()=>showToast('Route failed — check connection','warn'));
 }
 
 function showRouteSummary(stops) {
-  const summary = document.getElementById('route-summary');
-  const stopsEl = document.getElementById('route-stops');
-  summary.style.display = 'block';
-  stopsEl.innerHTML = stops.map((s, i) => `
-    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
-      <span style="background:#f97316;color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">${i+1}</span>
-      ${mapMarkers[i] ? (mapMarkers[i].getPopup().getContent().match(/<b[^>]*>(.*?)<\/b>/)?.[1] || 'Stop '+(i+1)) : 'Stop '+(i+1)}
+  document.getElementById('route-summary').style.display='block';
+  document.getElementById('route-stops').innerHTML=stops.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0">
+      <span style="background:#f97316;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">${i+1}</span>
+      <span style="flex:1;color:var(--muted)">${s.label}</span>
+      <button onclick="navigateToJob(${s.latlng.lat},${s.latlng.lng},'')" style="background:none;border:none;color:#f97316;font-size:11px;font-weight:700;cursor:pointer">Go →</button>
     </div>`).join('');
 }
 
+function setAsNextStop(lat,lng,label) {
+  tradieMap.closePopup();
+  drawRoute([{lat:userLat,lng:userLng},{lat,lng}]);
+  document.getElementById('route-info').textContent=`Routing to: ${label}`;
+  document.getElementById('route-summary').style.display='block';
+  showToast(`Routing to ${label}`,'success');
+}
+
+// ── Navigation ───────────────────────────────
 function startNavigation() {
-  if (mapMarkers.length === 0) return;
-  const first = mapMarkers[0].getLatLng();
+  const dest = routeWaypoints[1] || mapMarkers[0]?.getLatLng();
+  if (!dest) return;
+  navigateToJob(dest.lat||dest.lat, dest.lng||dest.lng, '');
+}
+
+function navigateToJob(lat,lng,address) {
   if (wazeEnabled) {
-    window.open(`waze://?ll=${first.lat},${first.lng}&navigate=yes`, '_blank');
-  } else if (googleMapsKey) {
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${first.lat},${first.lng}&travelmode=driving`, '_blank');
+    window.location.href=`waze://?ll=${lat},${lng}&navigate=yes`;
+    setTimeout(()=>window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`,'_blank'),1500);
+  } else if (/Android/i.test(navigator.userAgent)) {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,'_blank');
   } else {
-    window.open(`https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${localStorage.getItem('tm_home_lat')},${localStorage.getItem('tm_home_lng')};${first.lat},${first.lng}`, '_blank');
+    window.location.href=`maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+    setTimeout(()=>window.open(`https://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`,'_blank'),800);
   }
 }
 
-function navigateToJob(lat, lng, address) {
-  if (wazeEnabled) {
-    window.open(`waze://?ll=${lat},${lng}&navigate=yes`, '_blank');
-  } else if (googleMapsKey) {
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank');
+function wazeToJob(lat,lng) {
+  window.location.href=`waze://?ll=${lat},${lng}&navigate=yes`;
+  setTimeout(()=>window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`,'_blank'),1500);
+}
+
+// ── POI Layers ───────────────────────────────
+function togglePOILayer(type,btn) {
+  if (activePOILayers.has(type)) {
+    activePOILayers.delete(type);
+    poiMarkers.filter(m=>m.poiType===type).forEach(m=>tradieMap.removeLayer(m));
+    poiMarkers=poiMarkers.filter(m=>m.poiType!==type);
+    if(btn) btn.classList.remove('active-badge');
   } else {
-    window.open(`https://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`, '_blank');
+    activePOILayers.add(type);
+    if(btn) btn.classList.add('active-badge');
+    loadPOILayer(type);
   }
 }
 
-function wazeToJob(lat, lng) {
-  window.open(`waze://?ll=${lat},${lng}&navigate=yes`, '_blank');
-}
-
-function toggleTraffic() {
-  const badge = document.getElementById('badge-traffic');
-  if (googleMapsKey) {
-    showToast('Traffic layer requires Google Maps integration on mobile', 'info');
-  } else {
-    showToast('Connect Google Maps in Map Settings to enable live traffic', 'info');
+function loadPOILayer(type) {
+  if (type==='fav') { renderFavPOIs(); return; }
+  const pad=0.07;
+  const bbox=`${userLat-pad},${userLng-pad},${userLat+pad},${userLng+pad}`;
+  let q='';
+  if (type==='fuel') q=`node["amenity"="fuel"](${bbox});`;
+  else if (type==='food') q=`node["amenity"~"cafe|fast_food|restaurant|bakery"](${bbox});`;
+  else if (type==='supplier') {
+    const profile=JSON.parse(localStorage.getItem('tm_profile')||'{}');
+    const sup=TRADE_SUPPLIERS[profile.trade_type]||TRADE_SUPPLIERS['default'];
+    q=`node[${sup.query}](${bbox});`;
   }
-  badge.classList.toggle('active-badge');
-}
-
-async function loadWazeAlerts(lat, lng) {
-  // Waze public alerts API (community data)
-  wazeAlertMarkers.forEach(m => tradieMap.removeLayer(m));
-  wazeAlertMarkers = [];
-  const bbox = `${lat-0.15},${lng-0.2},${lat+0.15},${lng+0.2}`;
-  try {
-    const res = await fetch(`https://www.waze.com/row-rtserver/web/TGeoRSS?tk=community&bbox=${bbox}&types=alerts,traffic&format=JSON`);
-    const data = await res.json();
-    const alerts = (data.alerts || []).filter(a => ['POLICE','HAZARD','ACCIDENT'].includes(a.type));
-    alerts.forEach(alert => {
-      const emoji = alert.type === 'POLICE' ? '🚔' : alert.type === 'ACCIDENT' ? '🚨' : '⚠️';
-      const icon = L.divIcon({ html: `<div style="font-size:20px">${emoji}</div>`, className: '', iconAnchor: [10, 10] });
-      const marker = L.marker([alert.location.y, alert.location.x], { icon })
-        .addTo(tradieMap)
-        .bindPopup(`<b>${emoji} ${alert.type}</b><br><small>${alert.street || ''}</small><br><span style="font-size:11px;color:#999">Community reported · Not guaranteed</span>`);
-      wazeAlertMarkers.push(marker);
+  if (!q) return;
+  fetch(`https://overpass-api.de/api/interpreter?data=[out:json];${encodeURIComponent(q)}out body;`)
+  .then(r=>r.json()).then(data=>{
+    const emoji=type==='fuel'?'⛽':type==='food'?'🍔':'🔧';
+    (data.elements||[]).slice(0,25).forEach(el=>{
+      if (!el.lat||!el.lon) return;
+      const name=el.tags?.name||(type==='fuel'?'Petrol Station':type==='food'?'Food Stop':'Trade Supplier');
+      const km=Math.round(Math.hypot(el.lat-userLat,el.lon-userLng)*111*10)/10;
+      const icon=L.divIcon({html:`<div style="font-size:22px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.7))">${emoji}</div>`,className:'',iconAnchor:[11,11]});
+      const marker=L.marker([el.lat,el.lon],{icon}).addTo(tradieMap).bindPopup(`
+        <div style="min-width:170px">
+          <b>${emoji} ${name}</b>${el.tags?.brand?`<br><small style="color:#888">${el.tags.brand}</small>`:''}
+          <br><small style="color:#888">~${km} km away</small>
+          <div style="margin-top:8px;display:flex;gap:6px">
+            <button onclick="navigateToJob(${el.lat},${el.lon},'')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Navigate →</button>
+            <button onclick="saveFavPOI(${el.lat},${el.lon},'${name.replace(/'/g,"\\'")}','${emoji}')" style="background:#1a1d27;color:#f97316;border:1px solid #f97316;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">★ Save</button>
+          </div></div>`);
+      marker.poiType=type;
+      poiMarkers.push(marker);
     });
-    if (alerts.length > 0) showToast(`${alerts.length} Waze alerts near you`, 'info');
-  } catch(e) {
-    // Waze API may block CORS — silent fail, user navigates via Waze app
+    showToast(`${data.elements?.length||0} ${type} stops nearby`,'info');
+  }).catch(()=>showToast('POI search unavailable','warn'));
+}
+
+function saveFavPOI(lat,lng,name,emoji) {
+  favouritePOIs.push({lat,lng,name,emoji,id:Date.now()});
+  localStorage.setItem('tm_fav_pois',JSON.stringify(favouritePOIs));
+  showToast(`${emoji} ${name} saved ★`,'success');
+  tradieMap.closePopup();
+}
+
+function renderFavPOIs() {
+  if (!tradieMap) return;
+  poiMarkers.filter(m=>m.poiType==='fav').forEach(m=>tradieMap.removeLayer(m));
+  favouritePOIs.forEach(p=>{
+    const icon=L.divIcon({html:`<div style="font-size:20px">${p.emoji}<span style="font-size:10px">⭐</span></div>`,className:'',iconAnchor:[10,10]});
+    const marker=L.marker([p.lat,p.lng],{icon}).addTo(tradieMap).bindPopup(`
+      <div><b>${p.emoji} ${p.name}</b><br><small style="color:#888">Saved favourite</small>
+      <div style="margin-top:8px;display:flex;gap:6px">
+        <button onclick="navigateToJob(${p.lat},${p.lng},'')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Navigate →</button>
+        <button onclick="removeFavPOI(${p.id})" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Remove</button>
+      </div></div>`);
+    marker.poiType='fav';
+    poiMarkers.push(marker);
+  });
+}
+
+function removeFavPOI(id) {
+  favouritePOIs=favouritePOIs.filter(p=>p.id!==id);
+  localStorage.setItem('tm_fav_pois',JSON.stringify(favouritePOIs));
+  poiMarkers.filter(m=>m.poiType==='fav').forEach(m=>tradieMap.removeLayer(m));
+  poiMarkers=poiMarkers.filter(m=>m.poiType!=='fav');
+  renderFavPOIs();
+  tradieMap.closePopup();
+  showToast('Removed from favourites','info');
+}
+
+// ── Waze Alert Layer ──────────────────────────
+async function loadWazeAlerts() {
+  wazeAlertMarkers.forEach(m=>tradieMap.removeLayer(m));
+  wazeAlertMarkers=[];
+  const pad=0.15;
+  const bbox=`${userLat-pad},${userLng-pad},${userLat+pad},${userLng+pad}`;
+  try {
+    const res=await fetch(`https://www.waze.com/row-rtserver/web/TGeoRSS?tk=community&bbox=${bbox}&types=alerts,traffic&format=JSON`);
+    const data=await res.json();
+    const typeMap={POLICE:'🚔',HAZARD:'⚠️',ACCIDENT:'🚨',JAM:'🚦',ROAD_CLOSED:'🚧'};
+    let count=0;
+    (data.alerts||[]).forEach(alert=>{
+      const emoji=typeMap[alert.type]||'⚠️';
+      const icon=L.divIcon({html:`<div style="font-size:22px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.7))">${emoji}</div>`,className:'',iconAnchor:[11,11]});
+      const age=Math.round((Date.now()-alert.pubMillis)/60000);
+      const marker=L.marker([alert.location.y,alert.location.x],{icon}).addTo(tradieMap).bindPopup(
+        `<b>${emoji} ${alert.type}</b><br><small>${alert.street||'Unknown road'}</small><br><small style="color:#ef4444">Reported ${age}min ago</small><br><span style="font-size:10px;color:#888">Community report · Unverified</span>`);
+      wazeAlertMarkers.push(marker);
+      count++;
+    });
+    if (count>0) showToast(`🚔 ${count} Waze alerts in your area`,'info');
+  } catch(e) { /* CORS — silent fail */ }
+}
+
+function toggleTrafficLayer() {
+  if (!googleMapsKey) {
+    showToast('Connect Google Maps in Settings for live traffic','info');
+    openModal('modal-map-settings');
+    return;
+  }
+  showToast('Traffic data included in Google Maps layer','info');
+}
+
+// ── AI Route Suggestion (Solo only, non-annoying) ──
+let aiSuggestionShown = false;
+function checkAISuggestion(jobs) {
+  if (aiSuggestionShown) return;
+  aiSuggestionShown = true;
+  const profile=JSON.parse(localStorage.getItem('tm_profile')||'{}');
+  const sup=TRADE_SUPPLIERS[profile.trade_type];
+  if (!sup) return;
+  const banner=document.getElementById('ai-map-suggestion');
+  if (banner) {
+    banner.innerHTML=`💡 ${sup.label} near your route — tap <b>🔧</b> to show`;
+    banner.style.display='block';
+    setTimeout(()=>{ if(banner) banner.style.display='none'; },8000);
   }
 }
 
-function connectGoogleMaps() { openModal('modal-map-settings'); }
+// ── Voice Control (Lite + Solo) ───────────────
+function initMapVoice() {
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if (!SR) return;
+  mapVoiceRecognition=new SR();
+  mapVoiceRecognition.continuous=false;
+  mapVoiceRecognition.lang='en-AU';
+  mapVoiceRecognition.interimResults=false;
+  mapVoiceRecognition.onresult=e=>handleMapVoiceCommand(e.results[0][0].transcript.toLowerCase().trim());
+  mapVoiceRecognition.onend=()=>{ mapVoiceActive=false; const b=document.getElementById('btn-map-voice'); if(b){b.textContent='🎙';b.style.background='';} };
+  mapVoiceRecognition.onerror=()=>{ mapVoiceActive=false; const b=document.getElementById('btn-map-voice'); if(b){b.textContent='🎙';b.style.background='';} };
+}
 
+function toggleMapVoice() {
+  if (!mapVoiceRecognition) { showToast('Voice not supported on this device','warn'); return; }
+  const btn=document.getElementById('btn-map-voice');
+  if (mapVoiceActive) {
+    mapVoiceRecognition.stop(); mapVoiceActive=false;
+    if(btn){btn.textContent='🎙';btn.style.background='';}
+  } else {
+    mapVoiceRecognition.start(); mapVoiceActive=true;
+    if(btn){btn.textContent='🔴';btn.style.background='#ef4444';}
+    showToast('Listening…','info');
+  }
+}
+
+function handleMapVoiceCommand(cmd) {
+  // Navigation
+  if (/next job|navigate|go to first|first stop/.test(cmd)) {
+    if (mapMarkers.length>0) { const ll=mapMarkers[0].getLatLng(); navigateToJob(ll.lat,ll.lng,''); speak('Navigating to job one'); }
+    else speak('No jobs on the map');
+    return;
+  }
+  const jobMatch=cmd.match(/job\s*(\d+)/);
+  if (jobMatch) {
+    const n=parseInt(jobMatch[1])-1;
+    if (mapMarkers[n]) { const ll=mapMarkers[n].getLatLng(); navigateToJob(ll.lat,ll.lng,''); speak(`Navigating to job ${n+1}`); }
+    else speak(`Job ${n+1} not found`);
+    return;
+  }
+  // Route
+  if (/optimis|best route|sort.*jobs/.test(cmd)) { optimiseRoute(); speak('Optimising your route'); return; }
+  // POI
+  if (/fuel|petrol|servo/.test(cmd)) { togglePOILayer('fuel',document.querySelector('[data-poi="fuel"]')); speak('Showing nearby petrol stations'); return; }
+  if (/food|lunch|smoko|coffee|cafe|eat/.test(cmd)) { togglePOILayer('food',document.querySelector('[data-poi="food"]')); speak('Showing food stops near you'); return; }
+  if (/supplier|hardware|trade store/.test(cmd)) { togglePOILayer('supplier',document.querySelector('[data-poi="supplier"]')); speak('Showing trade suppliers'); return; }
+  if (/favourite|favorites|saved/.test(cmd)) { togglePOILayer('fav',document.querySelector('[data-poi="fav"]')); speak('Showing your saved stops'); return; }
+  // Waze
+  if (/waze|police|alerts|hazard/.test(cmd)) {
+    if (wazeEnabled) { loadWazeAlerts(); speak('Loading Waze alerts'); }
+    else speak('Enable Waze in map settings first');
+    return;
+  }
+  // Map control
+  if (/refresh|reload/.test(cmd)) { refreshMap(); speak('Map refreshed'); return; }
+  if (/my location|centre|center|where am i/.test(cmd)) { tradieMap.setView([userLat,userLng],14); speak('Centred on your location'); return; }
+  if (/zoom in/.test(cmd)) { tradieMap.zoomIn(); speak('Zooming in'); return; }
+  if (/zoom out/.test(cmd)) { tradieMap.zoomOut(); speak('Zooming out'); return; }
+
+  speak('Try: next job, job two, optimise route, show fuel, smoko stops, or zoom in');
+}
+
+function speak(text) {
+  if (!text||!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-AU'; u.rate=1.05; u.pitch=1;
+  window.speechSynthesis.speak(u);
+}
+
+// ── Settings ─────────────────────────────────
 function saveGoogleMapsKey() {
-  const key = document.getElementById('gmap-key-input').value.trim();
-  if (!key) { showToast('Enter a valid API key', 'warn'); return; }
-  localStorage.setItem('tm_gmaps_key', key);
-  googleMapsKey = key;
-  document.getElementById('badge-gmaps').classList.add('connected-badge');
-  showToast('Google Maps connected ✓', 'success');
+  const key=document.getElementById('gmap-key-input')?.value.trim();
+  if (!key) { showToast('Enter a valid API key','warn'); return; }
+  localStorage.setItem('tm_gmaps_key',key);
+  googleMapsKey=key;
+  document.getElementById('badge-gmaps')?.classList.add('connected-badge');
+  setMapTiles();
+  showToast('Google Maps connected ✓','success');
   closeModal('modal-map-settings');
 }
 
 function enableWaze() {
-  wazeEnabled = true;
-  localStorage.setItem('tm_waze_enabled', 'true');
-  document.getElementById('badge-waze').classList.add('connected-badge');
-  document.getElementById('btn-waze-connect').textContent = '✓ Waze Enabled';
-  showToast('Waze alerts enabled ✓', 'success');
-  const lat = parseFloat(localStorage.getItem('tm_home_lat') || '-33.8688');
-  const lng = parseFloat(localStorage.getItem('tm_home_lng') || '151.2093');
-  loadWazeAlerts(lat, lng);
+  wazeEnabled=true;
+  localStorage.setItem('tm_waze_enabled','true');
+  document.getElementById('badge-waze')?.classList.add('connected-badge');
+  const btn=document.getElementById('btn-waze-connect');
+  if (btn) btn.textContent='✓ Waze Enabled';
+  loadWazeAlerts();
+  showToast('Waze alerts enabled ✓','success');
 }
 
+function connectGoogleMaps() { openModal('modal-map-settings'); }
 function connectWaze() { openModal('modal-map-settings'); }
 
 function saveMapPrefs() {
-  localStorage.setItem('tm_map_avoid_tolls', document.getElementById('pref-avoid-tolls').checked);
-  localStorage.setItem('tm_map_avoid_highways', document.getElementById('pref-avoid-highways').checked);
-  localStorage.setItem('tm_map_start_home', document.getElementById('pref-start-home').checked);
+  ['pref-avoid-tolls','pref-avoid-highways','pref-start-home'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) localStorage.setItem('tm_map_'+id,el.checked);
+  });
 }
 
 function loadMapPrefs() {
-  const avoidTolls = document.getElementById('pref-avoid-tolls');
-  const avoidHighways = document.getElementById('pref-avoid-highways');
-  const startHome = document.getElementById('pref-start-home');
-  if (avoidTolls) avoidTolls.checked = localStorage.getItem('tm_map_avoid_tolls') === 'true';
-  if (avoidHighways) avoidHighways.checked = localStorage.getItem('tm_map_avoid_highways') === 'true';
-  if (startHome) startHome.checked = localStorage.getItem('tm_map_start_home') !== 'false';
+  ['pref-avoid-tolls','pref-avoid-highways'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.checked=localStorage.getItem('tm_map_'+id)==='true';
+  });
+  const sh=document.getElementById('pref-start-home');
+  if(sh) sh.checked=localStorage.getItem('tm_map_pref-start-home')!=='false';
+  const gKeyInput=document.getElementById('gmap-key-input');
+  if(gKeyInput&&googleMapsKey) gKeyInput.value=googleMapsKey;
 }
 
 function refreshMap() {
-  wazeAlertMarkers.forEach(m => tradieMap.removeLayer(m));
-  wazeAlertMarkers = [];
+  wazeAlertMarkers.forEach(m=>tradieMap.removeLayer(m));
+  wazeAlertMarkers=[];
   loadMapJobs();
-  if (wazeEnabled) {
-    const lat = parseFloat(localStorage.getItem('tm_home_lat') || '-33.8688');
-    const lng = parseFloat(localStorage.getItem('tm_home_lng') || '151.2093');
-    loadWazeAlerts(lat, lng);
-  }
-  showToast('Map refreshed', 'success');
+  if(wazeEnabled) loadWazeAlerts();
+  showToast('Map refreshed 🔄','success');
 }
 
-// ═══ END MAPS MODULE ═══
+// ══ END MAPS MODULE — AMC Navigation by Vex @ AMC inNOVAtions ══
 
 </script>
 </body>
