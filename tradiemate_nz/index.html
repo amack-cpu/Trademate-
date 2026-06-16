@@ -1,0 +1,3176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<title>TradieMate NZ — Northland</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0f1117;--card:#1a1d27;--card2:#22263a;--border:#2e3350;
+  --orange:#f97316;--orange2:#ea580c;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;
+  --text:#f1f5f9;--muted:#64748b;--muted2:#94a3b8;
+  --radius:14px;--radius-sm:8px;--shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;overflow:hidden;font-size:15px}
+/* ── SPLASH ── */
+#splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s}
+#splash.hide{opacity:0;pointer-events:none}
+.splash-logo{font-size:56px;margin-bottom:12px;animation:pulse 2s infinite}
+.splash-title{font-size:28px;font-weight:800;color:var(--orange);letter-spacing:-0.5px}
+.splash-sub{font-size:13px;color:var(--muted);margin-top:6px}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+/* ── APP SHELL ── */
+#app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative}
+/* ── TOP BAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;background:var(--bg);position:relative;z-index:10;flex-shrink:0}
+.topbar-left{display:flex;flex-direction:column}
+.topbar-logo{font-size:18px;font-weight:800;color:var(--orange);letter-spacing:-0.3px}
+.topbar-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:var(--card);border:none;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.icon-btn:active{background:var(--card2)}
+/* ── WEATHER ALERT ── */
+.weather-alert{background:linear-gradient(135deg,#92400e,#78350f);border:1px solid #d97706;border-radius:var(--radius-sm);margin:0 12px 8px;padding:10px 14px;display:none;flex-shrink:0}
+.weather-alert.visible{display:flex;align-items:center;gap:10px}
+.weather-alert.danger{background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:var(--red)}
+.wa-text{flex:1}
+.wa-title{font-size:13px;font-weight:700;color:#fbbf24}
+.wa-detail{font-size:11px;color:#fde68a;margin-top:2px}
+/* ── SCREENS ── */
+.screens{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow-y:auto;padding:0 0 80px;display:none;-webkit-overflow-scrolling:touch}
+.screen.active{display:block}
+.screen-pad{padding:0 12px}
+/* ── NAV ── */
+.nav{position:absolute;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;padding:8px 0 max(8px,env(safe-area-inset-bottom));z-index:10;flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;border:none;background:none;color:var(--muted);font-size:10px;transition:color .2s;-webkit-tap-highlight-color:transparent}
+.nav-item.active{color:var(--orange)}
+.nav-icon{font-size:20px;line-height:1}
+/* ── SECTION HEADERS ── */
+.sec-header{display:flex;align-items:center;justify-content:space-between;padding:16px 12px 8px}
+.sec-title{font-size:18px;font-weight:700}
+.sec-sub{font-size:12px;color:var(--muted);margin-top:2px}
+/* ── DASHBOARD ── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:16px;border:1px solid var(--border)}
+.stat-card.full{grid-column:1/-1}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-value{font-size:28px;font-weight:800;color:var(--orange)}
+.stat-value.green{color:var(--green)}
+.stat-value.blue{color:var(--blue)}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px}
+.qa-btn{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;text-align:left;color:var(--text);transition:background .15s;display:flex;flex-direction:column;gap:6px}
+.qa-btn:active{background:var(--card2)}
+.qa-icon{font-size:24px}
+.qa-label{font-size:13px;font-weight:600}
+.qa-sub{font-size:11px;color:var(--muted)}
+/* ── TIMER CARD ── */
+.timer-card{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid var(--border);border-radius:var(--radius);margin:0 12px 12px;padding:20px}
+.timer-display{font-size:48px;font-weight:800;text-align:center;letter-spacing:2px;color:var(--orange);font-variant-numeric:tabular-nums;margin:12px 0}
+.timer-display.running{color:var(--green)}
+.timer-info{text-align:center;font-size:12px;color:var(--muted);margin-bottom:16px}
+.timer-btns{display:flex;gap:10px}
+.timer-btn{flex:1;padding:14px;border-radius:var(--radius-sm);border:none;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s}
+.timer-btn.start{background:var(--green);color:#fff}
+.timer-btn.stop{background:var(--red);color:#fff}
+.timer-btn.pause{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.timer-btn:active{opacity:.85;transform:scale(.98)}
+.timer-job-sel{width:100%;padding:10px 12px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;margin-bottom:12px}
+/* ── CARDS + LISTS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin:0 12px 10px;overflow:hidden}
+.card-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:700}
+.list-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;display:block}
+.list-item:last-child{border-bottom:none}
+.list-item:active{background:var(--card2)}
+.li-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.li-title{font-size:14px;font-weight:600;flex:1;margin-right:8px}
+.li-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.li-sub2{font-size:11px;color:var(--muted);margin-top:2px}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:10px}
+.empty-text{font-size:14px}
+/* ── BADGES ── */
+.badge{padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge-green{background:rgba(34,197,94,.15);color:#4ade80}
+.badge-orange{background:rgba(249,115,22,.15);color:#fb923c}
+.badge-red{background:rgba(239,68,68,.15);color:#f87171}
+.badge-blue{background:rgba(59,130,246,.15);color:#60a5fa}
+.badge-purple{background:rgba(168,85,247,.15);color:#c084fc}
+.badge-grey{background:rgba(100,116,139,.15);color:#94a3b8}
+/* ── FORMS ── */
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;color:var(--muted);margin-bottom:5px;display:block;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.form-input{width:100%;padding:12px 14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;outline:none;transition:border .2s}
+.form-input:focus{border-color:var(--orange)}
+.form-input::placeholder{color:var(--muted)}
+select.form-input option{background:var(--card2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-section{font-size:12px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+/* ── BUTTONS ── */
+.btn{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center}
+.btn:active{opacity:.85;transform:scale(.99)}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-primary:hover{background:var(--orange2)}
+.btn-secondary{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.btn-green{background:var(--green);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-sm{padding:8px 14px;font-size:13px;width:auto;border-radius:var(--radius-sm)}
+.btn-row{display:flex;gap:10px;margin-top:16px}
+.btn-row .btn{flex:1}
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:430px;max-height:92vh;display:flex;flex-direction:column;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0}
+.modal-header{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-title{font-size:17px;font-weight:700}
+.modal-close{width:30px;height:30px;border-radius:50%;background:var(--card2);border:none;color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-footer{padding:16px 20px;border-top:1px solid var(--border);flex-shrink:0}
+/* ── INVOICE PREVIEW ── */
+.inv-preview{background:#fff;color:#111;border-radius:var(--radius-sm);padding:20px;font-family:Arial,sans-serif}
+.inv-preview-header{display:flex;justify-content:space-between;margin-bottom:16px}
+.inv-preview-title{font-size:24px;font-weight:800;color:#f97316}
+.inv-preview-num{font-size:11px;color:#666}
+.inv-preview-biz{text-align:right;font-size:11px;color:#444;line-height:1.6}
+.inv-preview-biz strong{font-size:13px;color:#111}
+.inv-line-header{display:flex;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;padding:6px 0;border-bottom:1px solid #eee;margin-bottom:4px}
+.inv-line{display:flex;font-size:13px;padding:6px 0;border-bottom:1px solid #f5f5f5}
+.inv-line .desc{flex:1}
+.inv-line .qty,.inv-line .rate,.inv-line .amt{width:60px;text-align:right}
+.inv-totals{margin-top:12px;border-top:2px solid #f97316;padding-top:10px}
+.inv-total-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:#444}
+.inv-total-row.grand{font-size:17px;font-weight:800;color:#f97316;margin-top:4px}
+.inv-bank{margin-top:14px;padding-top:10px;border-top:1px solid #eee;font-size:10px;color:#666;line-height:1.8}
+/* ── QUOTE SCREEN ── */
+.quote-summary{background:linear-gradient(135deg,var(--orange),var(--orange2));border-radius:var(--radius);margin:0 12px 12px;padding:20px;text-align:center}
+.qs-label{font-size:12px;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.5px}
+.qs-amount{font-size:44px;font-weight:800;color:#fff;margin:6px 0}
+.qs-breakdown{display:flex;justify-content:center;gap:20px;font-size:12px;color:rgba(255,255,255,.8)}
+.line-items-list{padding:0 12px}
+.li-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.li-card-desc{flex:1;font-size:14px;font-weight:600}
+.li-card-amt{font-size:14px;color:var(--orange);font-weight:700;white-space:nowrap}
+.li-card-del{width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,.15);border:none;color:var(--red);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+/* ── GST Return ── */
+.gst_return-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px}
+.gst_return-field{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+.gst_return-code{font-size:10px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.5px}
+.gst_return-label{font-size:11px;color:var(--muted);margin:2px 0}
+.gst_return-value{font-size:18px;font-weight:700}
+.gst_return-net-card{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid var(--border);border-radius:var(--radius);margin:0 12px 12px;padding:20px;text-align:center}
+.gst_return-net-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.gst_return-net-amount{font-size:40px;font-weight:800;color:var(--orange);margin:8px 0}
+/* ── AI CHAT ── */
+.chat-area{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:200px}
+.msg{max-width:85%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5}
+.msg.user{background:var(--orange);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.ai{background:var(--card2);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.ai.thinking{color:var(--muted);font-style:italic}
+.chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);flex-shrink:0}
+.chat-input{flex:1;padding:10px 14px;background:var(--card2);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:14px;outline:none;resize:none;max-height:80px}
+.chat-send{width:40px;height:40px;border-radius:50%;background:var(--orange);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.quick-chips{display:flex;gap:6px;padding:8px 12px 0;overflow-x:auto;flex-shrink:0}
+.quick-chips::-webkit-scrollbar{display:none}
+.chip{padding:6px 12px;background:var(--card2);border:1px solid var(--border);border-radius:20px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text);flex-shrink:0;transition:background .15s}
+.chip:active{background:var(--card)}
+/* ── AI STAGE ── */
+.ai-stage-bar{margin:0 12px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.ai-stage-label{font-size:11px;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between}
+.ai-stage-track{height:6px;background:var(--card2);border-radius:3px;overflow:hidden}
+.ai-stage-fill{height:100%;background:linear-gradient(90deg,var(--orange),var(--purple));border-radius:3px;transition:width .5s}
+/* ── SETTINGS ── */
+.settings-item{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.settings-item:last-child{border-bottom:none}
+.settings-item:active{background:var(--card2)}
+.set-left{display:flex;align-items:center;gap:12px}
+.set-icon{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:18px}
+.set-icon.orange{background:rgba(249,115,22,.15)}
+.set-icon.blue{background:rgba(59,130,246,.15)}
+.set-icon.green{background:rgba(34,197,94,.15)}
+.set-icon.purple{background:rgba(168,85,247,.15)}
+.set-icon.red{background:rgba(239,68,68,.15)}
+.set-text{}
+.set-label{font-size:14px;font-weight:600}
+.set-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.set-arrow{color:var(--muted);font-size:14px}
+/* ── TOGGLE ── */
+.toggle{position:relative;width:48px;height:26px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--card2);border-radius:13px;cursor:pointer;transition:.2s;border:1px solid var(--border)}
+.toggle-slider:before{content:'';position:absolute;width:20px;height:20px;left:2px;top:2px;background:var(--muted);border-radius:50%;transition:.2s}
+.toggle input:checked + .toggle-slider{background:var(--orange);border-color:var(--orange)}
+.toggle input:checked + .toggle-slider:before{transform:translateX(22px);background:#fff}
+/* ── ONBOARDING ── */
+#onboarding{position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;display:none}
+#onboarding.active{display:block}
+.ob-step{min-height:100vh;display:none;flex-direction:column;padding:40px 24px;align-items:center;justify-content:center}
+.ob-step.active{display:flex}
+.ob-emoji{font-size:64px;margin-bottom:20px}
+.ob-title{font-size:26px;font-weight:800;text-align:center;margin-bottom:10px}
+.ob-sub{font-size:15px;color:var(--muted);text-align:center;margin-bottom:32px;line-height:1.6}
+.ob-form{width:100%;max-width:360px}
+.ob-progress{display:flex;gap:6px;justify-content:center;margin-bottom:32px}
+.ob-dot{width:8px;height:8px;border-radius:50%;background:var(--border)}
+.ob-dot.active{background:var(--orange)}
+.ob-dot.done{background:var(--green)}
+/* ── VOICE INDICIRDR ── */
+.wake-indicator{position:fixed;top:0;left:0;right:0;z-index:1000;pointer-events:none}
+.wake-ring{position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,.3),transparent 70%);transition:all .3s;opacity:0}
+.wake-indicator.active .wake-ring{top:-20px;opacity:1;animation:wakeRing 1s ease infinite}
+@keyframes wakeRing{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.1)}}
+/* ── TOAST ── */
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 18px;font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* ── MISC ── */
+.divider{height:1px;background:var(--border);margin:16px 0}
+.section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:16px 12px 8px}
+.pill-tabs{display:flex;gap:6px;padding:0 12px 12px;overflow-x:auto}
+.pill-tabs::-webkit-scrollbar{display:none}
+.pill-tab{padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.pill-tab.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+/* ── PHOTO GRID ── */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 12px 12px}
+.photo-thumb{aspect-ratio:1;border-radius:var(--radius-sm);object-fit:cover;background:var(--card2);cursor:pointer}
+.photo-add{aspect-ratio:1;border-radius:var(--radius-sm);background:var(--card2);border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;font-size:11px;color:var(--muted)}
+/* ── RATE CARD ── */
+.rate-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.rate-row:last-child{border-bottom:none}
+.rate-type{font-size:14px;font-weight:600}
+.rate-val{font-size:18px;font-weight:700;color:var(--orange)}
+/* ── RECURRING ── */
+.sched-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin:0 12px 10px;padding:14px 16px}
+.sched-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sched-client{font-size:15px;font-weight:700}
+.sched-details{font-size:12px;color:var(--muted)}
+.sched-due{font-size:12px;color:var(--orange);font-weight:600;margin-top:4px}
+/* ── REPORTS ── */
+.report-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin:0 12px 10px;padding:16px}
+.rc-title{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.rc-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.rc-row:last-child{border-bottom:none}
+.rc-val{font-weight:700;color:var(--orange)}
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.map-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.map-badge:hover{border-color:var(--orange);color:var(--orange)}
+.active-badge{border-color:var(--green)!important;color:var(--green)!important}
+.connected-badge{border-color:var(--orange)!important;color:var(--orange)!important}
+#tradie-map .leaflet-container{background:#1a1d27}
+
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">🔧</div>
+  <div class="splash-title">TradieMate</div>
+  <div class="splash-sub">Solo · v1.3</div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div class="ob-step active" id="ob-step-1">
+    <div class="ob-progress">
+      <div class="ob-dot active" id="ob-p1"></div>
+      <div class="ob-dot" id="ob-p2"></div>
+      <div class="ob-dot" id="ob-p3"></div>
+      <div class="ob-dot" id="ob-p4"></div>
+    </div>
+    <div class="ob-emoji">🔧</div>
+    <div class="ob-title">Welcome to TradieMate</div>
+    <div class="ob-sub">Your AI-powered trade business assistant. Quotes, invoices, tax — all in one pocket-sized app.</div>
+    <div class="ob-form">
+      <button class="btn btn-primary" onclick="obNext(1)">Get Started →</button>
+    </div>
+  </div>
+  <div class="ob-step" id="ob-step-2">
+    <div class="ob-progress">
+      <div class="ob-dot done"></div><div class="ob-dot active"></div><div class="ob-dot"></div><div class="ob-dot"></div>
+    </div>
+    <div class="ob-emoji">🏗️</div>
+    <div class="ob-title">Your Business</div>
+    <div class="ob-sub">Let's get your details set up. You can change these anytime in Settings.</div>
+    <div class="ob-form">
+      <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="ob-biz" placeholder="e.g. Smith Electrical"></div>
+      <div class="form-group"><label class="form-label">Your Name</label><input class="form-input" id="ob-name" placeholder="e.g. John Smith"></div>
+      <div class="form-group"><label class="form-label">Trade Type</label>
+        <select class="form-input" id="ob-trade">
+          <option>Electrician</option><option>Plumber</option><option>Builder</option><option>Carpenter</option>
+          <option>Painter</option><option>Tiler</option><option>Concreter</option><option>Landscaper</option>
+          <option>HVAC</option><option>Roofer</option><option>Welder</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">NZBN (optional)</label><input class="form-input" id="ob-abn" placeholder="xx xxx xxx xxx" inputmode="numeric"></div>
+      <button class="btn btn-primary" onclick="obNext(2)">Continue →</button>
+    </div>
+  </div>
+  <div class="ob-step" id="ob-step-3">
+    <div class="ob-progress">
+      <div class="ob-dot done"></div><div class="ob-dot done"></div><div class="ob-dot active"></div><div class="ob-dot"></div>
+    </div>
+    <div class="ob-emoji">💰</div>
+    <div class="ob-title">Rates & Billing</div>
+    <div class="ob-sub">Set your standard hourly rate and GST status. These power your quotes and invoices.</div>
+    <div class="ob-form">
+      <div class="form-group"><label class="form-label">Hourly Rate (AUD)</label><input class="form-input" id="ob-rate" placeholder="85" inputmode="decimal" type="number"></div>
+      <div class="form-group"><label class="form-label">Call-Out Fee (AUD)</label><input class="form-input" id="ob-callout" placeholder="0" inputmode="decimal" type="number"></div>
+      <div class="form-group"><label class="form-label">Billing Round</label>
+        <select class="form-input" id="ob-round">
+          <option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="60">1 hour</option>
+        </select>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;justify-content:space-between">
+        <label class="form-label" style="margin:0">GST Registered</label>
+        <label class="toggle"><input type="checkbox" id="ob-gst" checked><span class="toggle-slider"></span></label>
+      </div>
+      <button class="btn btn-primary" onclick="obNext(3)" style="margin-top:16px">Continue →</button>
+    </div>
+  </div>
+  <div class="ob-step" id="ob-step-4">
+    <div class="ob-progress">
+      <div class="ob-dot done"></div><div class="ob-dot done"></div><div class="ob-dot done"></div><div class="ob-dot active"></div>
+    </div>
+    <div class="ob-emoji">🏦</div>
+    <div class="ob-title">Payment Details</div>
+    <div class="ob-sub">Add your bank details so clients can pay directly from your invoices.</div>
+    <div class="ob-form">
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="ob-phone" placeholder="04xx xxx xxx" type="tel"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="ob-email" placeholder="you@example.com" type="email"></div>
+      <div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="ob-bank" placeholder="e.g. CBA, ANZ, Westpac"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">BSB</label><input class="form-input" id="ob-bsb" placeholder="xxx-xxx" inputmode="numeric"></div>
+        <div class="form-group"><label class="form-label">Account</label><input class="form-input" id="ob-acct" placeholder="xxxxxxxx" inputmode="numeric"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="ob-acctname" placeholder="Your full name"></div>
+      <button class="btn btn-primary" onclick="obFinish()" style="margin-top:8px">Let's Go! 🚀</button>
+      <button class="btn btn-secondary" onclick="obFinish()" style="margin-top:8px">Skip for now</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">🌿 TradieMate NZ</div>
+      <div class="topbar-sub" id="topbar-sub">Solo v1.3</div>
+    </div>
+    <div class="topbar-right">
+      <div id="weather-mini" style="font-size:20px;cursor:pointer" onclick="showScreen('dash')">🌤</div>
+      <button class="icon-btn" id="mic-btn" onclick="toggleMic()" title="Voice">🎙</button>
+      <button class="icon-btn" onclick="showScreen('settings')" title="Settings">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Weather Alert -->
+  <div class="weather-alert" id="weather-alert">
+    <span id="wa-icon" style="font-size:22px">⚠️</span>
+    <div class="wa-text">
+      <div class="wa-title" id="wa-title">Wind alert</div>
+      <div class="wa-detail" id="wa-detail"></div>
+    </div>
+    <button onclick="document.getElementById('weather-alert').className='weather-alert'" style="background:none;border:none;color:#fbbf24;font-size:18px;cursor:pointer">✕</button>
+  </div>
+
+  <!-- Screens -->
+  <div class="screens">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="screen active screen-pad" id="screen-dash" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title" id="dash-greeting">Good morning 👋</div>
+          <div class="sec-sub" id="dash-date">Loading...</div>
+        </div>
+        <span class="badge badge-orange" id="ai-stage-badge">Observer</span>
+      </div>
+
+      <!-- AI Stage -->
+      <div class="ai-stage-bar">
+        <div class="ai-stage-label">
+          <span id="ai-stage-label">AI Stage: Observer</span>
+          <span id="ai-stage-pct" style="color:var(--orange)">0%</span>
+        </div>
+        <div class="ai-stage-track"><div class="ai-stage-fill" id="ai-stage-fill" style="width:0%"></div></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value" id="dash-revenue">$0</div>
+          <div class="stat-sub" id="dash-rev-sub">0 invoices</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Unpaid</div>
+          <div class="stat-value" id="dash-unpaid" style="color:var(--red)">$0</div>
+          <div class="stat-sub" id="dash-unpaid-sub">0 outstanding</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Jobs This Month</div>
+          <div class="stat-value blue" id="dash-jobs">0</div>
+          <div class="stat-sub" id="dash-jobs-sub">avg — hrs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Expenses</div>
+          <div class="stat-value green" id="dash-expenses">$0</div>
+          <div class="stat-sub" id="dash-exp-sub">this month</div>
+        </div>
+      </div>
+
+      <!-- NZ Crew Scale Notice -->
+      <div style="background:linear-gradient(135deg,#0f2e1a,#0a2410);border:1px solid rgba(34,197,94,.3);border-radius:var(--radius);margin:0 12px 16px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div style="font-size:28px">🌿</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:800;color:#22c55e;margin-bottom:2px">TradieMate NZ — Northland Trial</div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.5">Crew edition · NZD · 15% GST · IRD-ready<br>Built for lawn & garden operations up to 400+ clients</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:18px">🇳🇿</div>
+          <div style="font-size:10px;color:#64748b;margin-top:2px">Key: TM-NZ-ECHO</div>
+        </div>
+      </div>
+
+      <!-- Timer -->
+      <div class="timer-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:14px;font-weight:700">⏱ Job Timer</div>
+          <span class="badge" id="timer-status-badge" style="background:rgba(100,116,139,.15);color:#94a3b8">Stopped</span>
+        </div>
+        <select class="timer-job-sel" id="timer-client-sel">
+          <option value="">Select client (optional)</option>
+        </select>
+        <select class="timer-job-sel" id="timer-type-sel">
+          <option value="General">General</option>
+          <option value="Electrical">Electrical</option><option value="Plumbing">Plumbing</option>
+          <option value="Carpentry">Carpentry</option><option value="Painting">Painting</option>
+          <option value="Tiling">Tiling</option><option value="Concreting">Concreting</option>
+          <option value="Landscaping" selected>Landscaping</option><option value="Quote">Quote Visit</option>
+          <option value="Travel">Travel</option>
+        </select>
+        <div class="timer-display" id="timer-display">00:00:00</div>
+        <div class="timer-info" id="timer-info">Ready to start</div>
+        <div class="timer-btns">
+          <button class="timer-btn start" id="timer-start-btn" onclick="startTimer()">▶ Start</button>
+          <button class="timer-btn pause" id="timer-pause-btn" onclick="pauseTimer()" style="display:none">⏸ Pause</button>
+          <button class="timer-btn stop" id="timer-stop-btn" onclick="stopTimer()" style="display:none">■ Stop & Save</button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-label">Quick Actions</div>
+      <div class="quick-actions">
+        <button class="qa-btn" onclick="showScreen('quote')">
+          <div class="qa-icon">📋</div>
+          <div class="qa-label">New Quote</div>
+          <div class="qa-sub">Build & send</div>
+        </button>
+        <button class="qa-btn" onclick="showScreen('invoices')">
+          <div class="qa-icon">🧾</div>
+          <div class="qa-label">New Invoice</div>
+          <div class="qa-sub">Bill a client</div>
+        </button>
+        <button class="qa-btn" onclick="showScreen('expenses')">
+          <div class="qa-icon">💸</div>
+          <div class="qa-label">Log Expense</div>
+          <div class="qa-sub">Snap & save</div>
+        </button>
+        <button class="qa-btn" onclick="showScreen('ai')">
+          <div class="qa-icon">🤖</div>
+          <div class="qa-label">Ask Tradie AI</div>
+          <div class="qa-sub">Your advisor</div>
+        </button>
+      </div>
+
+      <!-- Recent Jobs -->
+      <div class="section-label">Recent Jobs</div>
+      <div class="card" style="margin-bottom:16px">
+        <div id="dash-jobs-list"><div class="empty" style="padding:20px"><div class="empty-text">No jobs yet — start the timer!</div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ QUOTE ══ -->
+    <div class="screen" id="screen-quote" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Quote Builder</div>
+          <div class="sec-sub">Build accurate quotes fast</div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="openModal('modal-new-quote')">+ New</button>
+      </div>
+
+      <div class="quote-summary" id="quote-summary" style="display:none">
+        <div class="qs-label">Quote Total</div>
+        <div class="qs-amount" id="qs-total">$0</div>
+        <div class="qs-breakdown">
+          <span id="qs-labour">Labour: $0</span>
+          <span id="qs-materials">Materials: $0</span>
+          <span id="qs-gst">GST: $0</span>
+        </div>
+      </div>
+
+      <div class="section-label">Line Items</div>
+      <div id="quote-lines-list"><div class="empty" style="padding:30px"><div class="empty-icon">📋</div><div class="empty-text">Tap + New to start a quote</div></div></div>
+
+      <div id="quote-actions" style="padding:0 12px;display:none">
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="clearQuote()">🗑 Clear</button>
+          <button class="btn btn-primary" onclick="quoteToInvoice()">→ Invoice</button>
+        </div>
+        <button class="btn btn-secondary" onclick="shareQuote()" style="margin-top:10px">📤 Share Quote PDF</button>
+      </div>
+
+      <div class="section-label">Saved Quotes</div>
+      <div id="saved-quotes-list"><div style="padding:0 12px 12px"><div class="empty-text" style="color:var(--muted);font-size:13px;text-align:center">No saved quotes yet</div></div></div>
+    </div>
+
+    <!-- ══ JOBS ══ -->
+    <div class="screen" id="screen-jobs" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Jobs</div>
+          <div class="sec-sub" id="jobs-count-sub">All recorded jobs</div>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="exportJobsCSV()">↓ Export</button>
+      </div>
+      <div class="pill-tabs" id="jobs-filter-tabs">
+        <div class="pill-tab active" onclick="filterJobs('all',this)">All</div>
+        <div class="pill-tab" onclick="filterJobs('today',this)">Today</div>
+        <div class="pill-tab" onclick="filterJobs('week',this)">This Week</div>
+        <div class="pill-tab" onclick="filterJobs('month',this)">This Month</div>
+      </div>
+      <div id="jobs-list"></div>
+    </div>
+
+    <!-- ══ INVOICES ══ -->
+    <div class="screen" id="screen-invoices" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Invoices</div>
+          <div class="sec-sub" id="inv-summary-sub">Loading...</div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="openModal('modal-new-invoice')">+ New</button>
+      </div>
+      <div class="pill-tabs">
+        <div class="pill-tab active" onclick="filterInvoices('all',this)">All</div>
+        <div class="pill-tab" onclick="filterInvoices('unpaid',this)">Unpaid</div>
+        <div class="pill-tab" onclick="filterInvoices('paid',this)">Paid</div>
+        <div class="pill-tab" onclick="filterInvoices('overdue',this)">Overdue</div>
+      </div>
+      <div id="invoices-list"></div>
+    </div>
+
+    <!-- ══ EXPENSES ══ -->
+    <div class="screen" id="screen-expenses" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Expenses</div>
+          <div class="sec-sub">Track costs & GST credits</div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="openModal('modal-new-expense')">+ Add</button>
+      </div>
+      <div class="stats-grid" style="padding-bottom:0">
+        <div class="stat-card">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value" id="exp-month-total">$0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">GST Credits</div>
+          <div class="stat-value green" id="exp-gst-total">$0</div>
+        </div>
+      </div>
+      <div class="section-label">Recent Expenses</div>
+      <div id="expenses-list"></div>
+    </div>
+
+    <!-- ══ GST Return / TAX ══ -->
+    <div class="screen" id="screen-gst_return" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">GST Return & Tax</div>
+          <div class="sec-sub" id="gst_return-period-label">Loading quarter...</div>
+        </div>
+        <span class="badge badge-orange" id="gst_return-status-badge">Not lodged</span>
+      </div>
+      <div class="gst_return-net-card">
+        <div class="gst_return-net-label">Net GST <span id="gst_return-net-dir">Payable</span></div>
+        <div class="gst_return-net-amount" id="gst_return-net">$0.00</div>
+        <div style="font-size:12px;color:var(--muted)">Due: <span id="gst_return-due-label">—</span></div>
+      </div>
+      <div class="section-label">GST Fields</div>
+      <div class="gst_return-grid">
+        <div class="gst_return-field"><div class="gst_return-code">G1</div><div class="gst_return-label">Total Sales</div><div class="gst_return-value" id="gst_return-g1">$0</div></div>
+        <div class="gst_return-field"><div class="gst_return-code">G10</div><div class="gst_return-label">Capital Purchases</div><div class="gst_return-value" id="gst_return-g10">$0</div></div>
+        <div class="gst_return-field"><div class="gst_return-code">G11</div><div class="gst_return-label">Non-capital Purch.</div><div class="gst_return-value" id="gst_return-g11">$0</div></div>
+        <div class="gst_return-field"><div class="gst_return-code">1A</div><div class="gst_return-label">GST on Sales</div><div class="gst_return-value" id="gst_return-1a">$0</div></div>
+        <div class="gst_return-field"><div class="gst_return-code">1B</div><div class="gst_return-label">GST Credits</div><div class="gst_return-value" id="gst_return-1b">$0</div></div>
+        <div class="gst_return-field"><div class="gst_return-code">W1</div><div class="gst_return-label">Total Wages</div><div class="gst_return-value" id="gst_return-w1">$0</div></div>
+      </div>
+      <div style="padding:0 12px 12px">
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="exportGST ReturnPDF()">📄 Export PDF</button>
+          <button class="btn btn-primary" onclick="exportGST ReturnCSV()">↓ CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ AI ══ -->
+    <div class="screen" id="screen-ai" style="padding-left:0;padding-right:0;display:flex;flex-direction:column">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Tradie AI</div>
+          <div class="sec-sub" id="ai-persona-sub">Your smart business advisor</div>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="openModal('modal-persona')">🎭 Persona</button>
+      </div>
+      <div class="quick-chips" id="quick-chips">
+        <div class="chip" onclick="quickAsk('What did I earn this month?')">💰 Earnings</div>
+        <div class="chip" onclick="quickAsk('How many jobs this week?')">📋 Jobs</div>
+        <div class="chip" onclick="quickAsk('What are my top expenses?')">💸 Expenses</div>
+        <div class="chip" onclick="quickAsk('Generate a quote estimate')">📐 Quote</div>
+        <div class="chip" onclick="quickAsk('GST Return summary')">📊 GST Return</div>
+        <div class="chip" onclick="quickAsk('What should I charge for a half-day job?')">💡 Rates</div>
+      </div>
+      <div class="chat-area" id="chat-area"></div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chat-in" placeholder="Ask anything about your business..." rows="1" onkeydown="chatKeydown(event)" oninput="autoResizeChat(this)"></textarea>
+        <button class="chat-send" onclick="sendChat()">↑</button>
+      </div>
+    </div>
+
+    <!-- ══ CLIENTS ══ -->
+    <div class="screen" id="screen-clients" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Clients</div>
+          <div class="sec-sub" id="clients-count-sub">Your client book</div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="openModal('modal-new-client')">+ Add</button>
+      </div>
+      <div style="padding:0 12px 10px">
+        <input class="form-input" id="client-search" placeholder="🔍 Search clients..." oninput="renderClients()" style="padding:10px 14px">
+      </div>
+      <div id="clients-list"></div>
+    </div>
+
+    <!-- ══ REPORTS ══ -->
+    <div class="screen" id="screen-reports" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Reports</div>
+          <div class="sec-sub">Business performance overview</div>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="exportAllCSV()">↓ Export</button>
+      </div>
+      <div class="pill-tabs">
+        <div class="pill-tab active" onclick="switchReport('month',this)">This Month</div>
+        <div class="pill-tab" onclick="switchReport('quarter',this)">Quarter</div>
+        <div class="pill-tab" onclick="switchReport('year',this)">Year</div>
+      </div>
+      <div id="reports-content"></div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="screen" id="screen-settings" style="padding-left:0;padding-right:0">
+      <div class="sec-header screen-pad">
+        <div>
+          <div class="sec-title">Settings</div>
+        </div>
+      </div>
+      <div style="padding:0 12px;margin-bottom:8px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="padding:16px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)">
+          <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--orange2));display:flex;align-items:center;justify-content:center;font-size:22px">🔧</div>
+          <div>
+            <div style="font-size:16px;font-weight:700" id="set-biz-name">—</div>
+            <div style="font-size:12px;color:var(--muted)" id="set-biz-trade">—</div>
+          </div>
+        </div>
+        <div class="settings-item" onclick="openModal('modal-edit-business')">
+          <div class="set-left"><div class="set-icon orange">🏗️</div><div class="set-text"><div class="set-label">Business Details</div><div class="set-sub" id="set-biz-sub">NZBN, name, trade type</div></div></div>
+          <div class="set-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="openModal('modal-edit-rates')">
+          <div class="set-left"><div class="set-icon blue">💰</div><div class="set-text"><div class="set-label">Rates & Billing</div><div class="set-sub" id="set-rates-sub">Hourly rate, billing round</div></div></div>
+          <div class="set-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="openModal('modal-edit-bank')">
+          <div class="set-left"><div class="set-icon green">🏦</div><div class="set-text"><div class="set-label">Bank Details</div><div class="set-sub" id="set-bank-sub">BSB, account</div></div></div>
+          <div class="set-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="openModal('modal-edit-voice')">
+          <div class="set-left"><div class="set-icon purple">🎙</div><div class="set-text"><div class="set-label">Voice & AI</div><div class="set-sub" id="set-voice-sub">Wake word, persona</div></div></div>
+          <div class="set-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="openModal('modal-edit-gst')">
+          <div class="set-left"><div class="set-icon orange">📊</div><div class="set-text"><div class="set-label">GST & Tax</div><div class="set-sub" id="set-gst-sub">GST status</div></div></div>
+          <div class="set-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="openModal('modal-rate-cards')">
+          <div class="set-left"><div class="set-icon blue">💳</div><div class="set-text"><div class="set-label">Rate Cards</div><div class="set-sub" id="set-rates-card-sub">Per-client rates</div></div></div>
+          <div class="set-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="openModal('modal-recurring')">
+          <div class="set-left"><div class="set-icon green">🔁</div><div class="set-text"><div class="set-label">Recurring Jobs</div><div class="set-sub" id="set-recur-sub">Scheduled work</div></div></div>
+          <div class="set-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="backupData()">
+          <div class="set-left"><div class="set-icon purple">💾</div><div class="set-text"><div class="set-label">Backup Data</div><div class="set-sub">Export all data as JSON</div></div></div>
+          <div class="set-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="if(confirm('Reset ALL data? This cannot be undone.')){localStorage.clear();location.reload()}">
+          <div class="set-left"><div class="set-icon red">⚠️</div><div class="set-text"><div class="set-label">Reset App</div><div class="set-sub">Clear all data</div></div></div>
+          <div class="set-arrow">›</div>
+        </div>
+      </div>
+      <div style="text-align:center;padding:20px;font-size:12px;color:var(--muted)">TradieMate Solo v1.3 · Built by Vex 🦊 @ AMC inNOVAtions<br><span style="font-size:10px">⚠️ AI provides estimates only. Always verify with your accountant.</span></div>
+    </div>
+
+
+    <!-- ═══ MAPS SCREEN — AMC Navigation NZ ═══ -->
+    <div class="screen" id="screen-maps" style="padding:0;display:flex;flex-direction:column;height:100%">
+
+      <!-- Header -->
+      <div class="sec-header screen-pad" style="flex-shrink:0">
+        <div>
+          <div class="sec-title">🗺 AMC Navigation NZ</div>
+          <div style="font-size:10px;color:#f97316;font-weight:700;letter-spacing:.3px">by Vex @ AMC inNOVAtions · NZ Edition 🇳🇿</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="icon-btn" id="btn-map-voice" onclick="toggleMapVoice()" title="Voice control" style="transition:background .2s">🎙</button>
+          <button class="icon-btn" onclick="optimiseRoute()" title="Optimise route">🔀</button>
+          <button class="icon-btn" onclick="tradieMap&&tradieMap.setView([userLat,userLng],14)" title="My location">📍</button>
+          <button class="icon-btn" onclick="openModal('modal-map-settings')" title="Settings">⚙️</button>
+        </div>
+      </div>
+
+      <!-- Filter pills (Solo: today/week/all | Lite: today only) -->
+      <div class="pill-tabs screen-pad" style="flex-shrink:0;padding-top:0" id="map-filter-tabs">
+        <div class="pill-tab active" onclick="setMapFilter('today',this)">Today</div>
+        <div class="pill-tab" onclick="setMapFilter('week',this)" id="map-pill-week">This Week</div>
+        <div class="pill-tab" onclick="setMapFilter('all',this)" id="map-pill-all">All Jobs</div>
+      </div>
+
+      <!-- AI suggestion banner (subtle, Solo only) -->
+      <div id="ai-map-suggestion" style="display:none;background:rgba(249,115,22,.1);border-top:1px solid rgba(249,115,22,.2);border-bottom:1px solid rgba(249,115,22,.2);padding:8px 16px;font-size:12px;color:#f97316;flex-shrink:0"></div>
+
+      <!-- POI quick-toggle toolbar -->
+      <div style="background:var(--card);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;gap:6px;flex-shrink:0;overflow-x:auto" id="poi-toolbar">
+        <button class="map-badge" data-poi="fuel" onclick="togglePOILayer('fuel',this)">⛽ Fuel</button>
+        <button class="map-badge" data-poi="food" onclick="togglePOILayer('food',this)">🍔 Food</button>
+        <button class="map-badge" data-poi="supplier" onclick="togglePOILayer('supplier',this)" id="badge-supplier">🔧 Suppliers</button>
+        <button class="map-badge" data-poi="fav" onclick="togglePOILayer('fav',this)">⭐ Saved</button>
+        <button class="map-badge" id="badge-waze-alerts" onclick="wazeEnabled?loadWazeAlerts():connectWaze()">🚔 Waze</button>
+        <button class="map-badge" id="badge-traffic" onclick="toggleTrafficLayer()">🚦 Traffic</button>
+      </div>
+
+      <!-- The Map -->
+      <div id="tradie-map" style="flex:1;min-height:0;z-index:1"></div>
+
+      <!-- Route summary strip -->
+      <div id="route-summary" style="display:none;background:var(--card);border-top:2px solid #f97316;padding:10px 14px;flex-shrink:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div id="route-info" style="font-size:13px;font-weight:700;color:var(--text)">—</div>
+          <button class="btn-sm btn-orange" onclick="startNavigation()">Start →</button>
+        </div>
+        <div id="route-stops"></div>
+      </div>
+
+      <!-- Integration badges -->
+      <div style="background:var(--card);border-top:1px solid var(--border);padding:6px 12px;display:flex;gap:6px;flex-shrink:0;overflow-x:auto;align-items:center">
+        <div class="map-badge active-badge" title="OpenStreetMap — always on">🗺 OSM</div>
+        <div class="map-badge" id="badge-gmaps" onclick="connectGoogleMaps()" title="Connect Google Maps">
+          📍 Google Maps
+        </div>
+        <div class="map-badge" id="badge-waze" onclick="connectWaze()" title="Waze alerts">🚔 Waze</div>
+        <div style="margin-left:auto;font-size:10px;color:var(--muted)">AMC Navigation NZ</div>
+      </div>
+    </div>
+
+        <!-- Map Settings Modal -->
+    <div class="modal-overlay" id="modal-map-settings">
+      <div class="modal-box" style="max-width:420px">
+        <div class="modal-header"><span class="modal-title">Map Settings</span><button class="modal-close" onclick="closeModal('modal-map-settings')">✕</button></div>
+        <div style="padding:16px">
+          <div class="form-section">Map Integrations</div>
+          <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="font-weight:700;margin-bottom:4px">🗺 OpenStreetMap</div>
+            <div style="font-size:13px;color:var(--green)">✓ Active — always on, no setup needed</div>
+          </div>
+          <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="font-weight:700;margin-bottom:4px">📍 Google Maps</div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Better traffic data & navigation. Requires a free Google Maps API key.</div>
+            <input class="form-input" id="gmap-key-input" placeholder="Paste Google Maps API key..." style="margin-bottom:8px">
+            <button class="btn-sm btn-orange" onclick="saveGoogleMapsKey()">Save & Connect</button>
+          </div>
+          <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+            <div style="font-weight:700;margin-bottom:4px">🚔 Waze Alerts</div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Community-reported police checkpoints, hazards & incidents. Opens Waze app for navigation.</div>
+            <button class="btn-sm btn-orange" onclick="enableWaze()" id="btn-waze-connect">Enable Waze Integration</button>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px">⚠️ Police checkpoint data is community-reported. TradieMate makes no guarantee of accuracy.</div>
+          </div>
+          <div class="form-section">Route Preferences</div>
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px">
+            <input type="checkbox" id="pref-avoid-tolls" onchange="saveMapPrefs()"> Avoid toll roads
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px">
+            <input type="checkbox" id="pref-avoid-highways" onchange="saveMapPrefs()"> Avoid highways
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px">
+            <input type="checkbox" id="pref-start-home" onchange="saveMapPrefs()" checked> Start route from home address
+          </label>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end screens -->
+
+  <!-- Bottom Nav -->
+  <div class="nav">
+    <button class="nav-item active" id="nav-dash" onclick="showScreen('dash')"><span class="nav-icon">🏠</span>Home</button>
+    <button class="nav-item" id="nav-jobs" onclick="showScreen('jobs')"><span class="nav-icon">⏱</span>Jobs</button>
+    <button class="nav-item" id="nav-invoices" onclick="showScreen('invoices')"><span class="nav-icon">🧾</span>Invoices</button>
+    <button class="nav-item" id="nav-gst_return" onclick="showScreen('gst_return')"><span class="nav-icon">📊</span>GST Return</button>
+    <button class="nav-item" id="nav-maps" onclick="showScreen('maps')"><span class="nav-icon">🗺</span>Maps</button>
+    <button class="nav-item" id="nav-ai" onclick="showScreen('ai')"><span class="nav-icon">🤖</span>AI</button>
+  </div>
+
+  <!-- Wake indicator -->
+  <div class="wake-indicator" id="wake-indicator"><div class="wake-ring"></div></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════ MODALS ═══════════════ -->
+
+<!-- New Quote -->
+<div class="modal-overlay" id="modal-new-quote">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Add Line Item</div><button class="modal-close" onclick="closeModal('modal-new-quote')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="qi-desc" placeholder="e.g. Labour – install powerpoints"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Qty / Hours</label><input class="form-input" id="qi-qty" type="number" placeholder="1" min="0" step="0.25"></div>
+        <div class="form-group"><label class="form-label">Unit Rate ($)</label><input class="form-input" id="qi-rate" type="number" placeholder="85" min="0"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Item Type</label>
+        <select class="form-input" id="qi-type"><option value="labour">Labour</option><option value="material">Materials</option><option value="callout">Call-out Fee</option><option value="other">Other</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" id="qi-notes" placeholder="Any notes..."></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="addLineItem()">Add to Quote</button></div>
+  </div>
+</div>
+
+<!-- New Invoice -->
+<div class="modal-overlay" id="modal-new-invoice">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">New Invoice</div><button class="modal-close" onclick="closeModal('modal-new-invoice')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-section">Client</div>
+      <div class="form-group"><label class="form-label">Client Name</label><input class="form-input" id="ni-client" placeholder="Client name" list="ni-client-list"><datalist id="ni-client-list"></datalist></div>
+      <div class="form-group"><label class="form-label">Client Email (optional)</label><input class="form-input" id="ni-email" placeholder="client@email.com" type="email"></div>
+      <div class="form-section">Job Details</div>
+      <div class="form-group"><label class="form-label">Description / Scope of Work</label><textarea class="form-input" id="ni-desc" rows="3" placeholder="Describe the work completed..."></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Hours</label><input class="form-input" id="ni-hours" type="number" placeholder="0" min="0" step="0.25"></div>
+        <div class="form-group"><label class="form-label">Hourly Rate ($)</label><input class="form-input" id="ni-rate" type="number" placeholder="85"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Materials / Parts ($)</label><input class="form-input" id="ni-materials" type="number" placeholder="0" min="0"></div>
+      <div class="form-section">Billing</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Issue Date</label><input class="form-input" id="ni-date" type="date"></div>
+        <div class="form-group"><label class="form-label">Due Date</label><input class="form-input" id="ni-due" type="date"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="ni-notes" placeholder="e.g. Thank you for your business"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveInvoice()">Create Invoice</button></div>
+  </div>
+</div>
+
+<!-- View Invoice -->
+<div class="modal-overlay" id="modal-view-invoice">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Invoice</div><button class="modal-close" onclick="closeModal('modal-view-invoice')">✕</button></div>
+    <div class="modal-body" id="view-invoice-body"></div>
+    <div class="modal-footer">
+      <div class="btn-row">
+        <button class="btn btn-green" id="inv-mark-paid-btn" onclick="markInvoicePaid()">✓ Mark Paid</button>
+        <button class="btn btn-primary" onclick="shareInvoicePDF()">📤 Share PDF</button>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:8px" onclick="generateInvoicePDF()">📄 Download PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Expense -->
+<div class="modal-overlay" id="modal-new-expense">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Log Expense</div><button class="modal-close" onclick="closeModal('modal-new-expense')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="ne-desc" placeholder="e.g. Bunnings – cable & conduit"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Amount ($)</label><input class="form-input" id="ne-amount" type="number" placeholder="0.00" min="0" step="0.01"></div>
+        <div class="form-group"><label class="form-label">GST Included?</label>
+          <select class="form-input" id="ne-gst"><option value="yes">Yes</option><option value="no">No</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Category</label>
+        <select class="form-input" id="ne-cat">
+          <option>Tools & Equipment</option><option>Materials & Parts</option><option>Fuel & Vehicle</option>
+          <option>Subcontractors</option><option>Insurance</option><option>Licensing & Permits</option>
+          <option>Phone & Internet</option><option>Training & Education</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="ne-date" type="date"></div>
+      <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" id="ne-notes" placeholder="Any notes..."></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveExpense()">Save Expense</button></div>
+  </div>
+</div>
+
+<!-- New Client -->
+<div class="modal-overlay" id="modal-new-client">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Add Client</div><button class="modal-close" onclick="closeModal('modal-new-client')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Full Name / Business</label><input class="form-input" id="nc-name" placeholder="e.g. Johnson Family"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="nc-phone" placeholder="04xx xxx xxx" type="tel"></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="nc-email" placeholder="email@domain.com" type="email"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="nc-address" placeholder="Street address..."></div>
+      <div class="form-group"><label class="form-label">Trade Type</label>
+        <select class="form-input" id="nc-trade"><option>Electrical</option><option>Plumbing</option><option>Carpentry</option><option>General Building</option><option>Painting</option><option>Tiling</option><option>Landscaping</option><option>Other</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Default Hourly Rate ($)</label><input class="form-input" id="nc-rate" type="number" placeholder="Use my standard rate"></div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea class="form-input" id="nc-notes" rows="2" placeholder="Any special notes..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveClient()">Save Client</button></div>
+  </div>
+</div>
+
+<!-- Save Job (after timer stop) -->
+<div class="modal-overlay" id="modal-save-job">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Save Job</div><button class="modal-close" onclick="closeModal('modal-save-job')">✕</button></div>
+    <div class="modal-body">
+      <div style="background:var(--card2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;text-align:center">
+        <div style="font-size:12px;color:var(--muted)">Duration</div>
+        <div style="font-size:28px;font-weight:800;color:var(--orange)" id="sj-duration">0:00</div>
+        <div style="font-size:12px;color:var(--muted)" id="sj-billed">Billed: —</div>
+      </div>
+      <div class="form-group"><label class="form-label">Client</label><input class="form-input" id="sj-client" placeholder="Client name" list="sj-client-list"><datalist id="sj-client-list"></datalist></div>
+      <div class="form-group"><label class="form-label">Job Type</label><input class="form-input" id="sj-type" placeholder="e.g. Electrical installation"></div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea class="form-input" id="sj-notes" rows="2" placeholder="What was done..."></textarea></div>
+      <div class="form-group"><label class="form-label">Billing Rate ($/hr)</label><input class="form-input" id="sj-rate" type="number"></div>
+    </div>
+    <div class="modal-footer">
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="saveJobOnly()">💾 Save Only</button>
+        <button class="btn btn-primary" onclick="saveJobAndInvoice()">🧾 Save + Invoice</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Business -->
+<div class="modal-overlay" id="modal-edit-business">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Business Details</div><button class="modal-close" onclick="closeModal('modal-edit-business')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="eb-biz" placeholder="Your business name"></div>
+      <div class="form-group"><label class="form-label">Your Name</label><input class="form-input" id="eb-name" placeholder="Your full name"></div>
+      <div class="form-group"><label class="form-label">NZBN</label><input class="form-input" id="eb-abn" placeholder="xx xxx xxx xxx" inputmode="numeric"></div>
+      <div class="form-group"><label class="form-label">Trade Type</label>
+        <select class="form-input" id="eb-trade"><option>Electrician</option><option>Plumber</option><option>Builder</option><option>Carpenter</option><option>Painter</option><option>Tiler</option><option>Concreter</option><option>Landscaper</option><option>HVAC</option><option>Roofer</option><option>Other</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="eb-phone" placeholder="04xx xxx xxx"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="eb-email" placeholder="you@email.com"></div>
+      <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="eb-address" placeholder="Business address"></div>
+      <div class="form-group"><label class="form-label">Website (optional)</label><input class="form-input" id="eb-website" placeholder="https://..."></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveBusinessSettings()">Save Changes</button></div>
+  </div>
+</div>
+
+<!-- Edit Rates -->
+<div class="modal-overlay" id="modal-edit-rates">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Rates & Billing</div><button class="modal-close" onclick="closeModal('modal-edit-rates')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Standard Hourly Rate ($)</label><input class="form-input" id="er-rate" type="number" placeholder="85"></div>
+      <div class="form-group"><label class="form-label">Call-Out / Minimum Fee ($)</label><input class="form-input" id="er-callout" type="number" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">After-Hours Multiplier</label>
+        <select class="form-input" id="er-ah"><option value="1">1x (no change)</option><option value="1.5">1.5x</option><option value="2">2x</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Billing Round</label>
+        <select class="form-input" id="er-round"><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hour</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Default Payment Terms (days)</label><input class="form-input" id="er-terms" type="number" placeholder="14"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveRatesSettings()">Save Changes</button></div>
+  </div>
+</div>
+
+<!-- Edit Bank -->
+<div class="modal-overlay" id="modal-edit-bank">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Bank Details</div><button class="modal-close" onclick="closeModal('modal-edit-bank')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Bank Name</label><input class="form-input" id="bk-bank" placeholder="e.g. Commonwealth Bank"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">BSB</label><input class="form-input" id="bk-bsb" placeholder="xxx-xxx" inputmode="numeric"></div>
+        <div class="form-group"><label class="form-label">Account Number</label><input class="form-input" id="bk-acct" placeholder="xxxxxxxx" inputmode="numeric"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="bk-name" placeholder="Your full name"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveBankSettings()">Save Changes</button></div>
+  </div>
+</div>
+
+<!-- Edit Voice -->
+<div class="modal-overlay" id="modal-edit-voice">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Voice & AI Settings</div><button class="modal-close" onclick="closeModal('modal-edit-voice')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Wake Word / Phrase</label><input class="form-input" id="vx-wake" placeholder="e.g. hey tradie"></div>
+      <div class="form-group"><label class="form-label">AI Persona</label>
+        <select class="form-input" id="vx-persona">
+          <option value="mate">🤙 The Mate – casual, plain English</option>
+          <option value="pro">💼 The Pro – professional, precise</option>
+          <option value="coach">🏆 The Coach – motivating, encouraging</option>
+          <option value="assistant">🤖 The Assistant – formal, detailed</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveVoiceSettings()">Save Changes</button></div>
+  </div>
+</div>
+
+<!-- GST Settings -->
+<div class="modal-overlay" id="modal-edit-gst">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">GST & Tax</div><button class="modal-close" onclick="closeModal('modal-edit-gst')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div><div class="set-label">GST Registered</div><div class="set-sub" style="font-size:12px;color:var(--muted)">Add 15% GST to invoices</div></div>
+        <label class="toggle"><input type="checkbox" id="gst-toggle" onchange="toggleGST(this)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="form-group"><label class="form-label">Financial Year Start</label>
+        <select class="form-input" id="gst-fy"><option value="7">July (IRD standard)</option><option value="1">January</option></select>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" onclick="saveGSTSettings()">Save Changes</button></div>
+  </div>
+</div>
+
+<!-- Persona -->
+<div class="modal-overlay" id="modal-persona">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Choose AI Persona</div><button class="modal-close" onclick="closeModal('modal-persona')">✕</button></div>
+    <div class="modal-body">
+      <div style="display:grid;gap:10px">
+        <div class="list-item" style="border-radius:var(--radius-sm);border:1px solid var(--border);padding:14px 16px" onclick="setPersona('mate')">
+          <div class="li-row"><div class="li-title">🤙 The Mate</div><span class="badge badge-orange" id="pm-mate"></span></div>
+          <div class="li-sub">Casual, plain English. Like your best mate who happens to be an accountant.</div>
+        </div>
+        <div class="list-item" style="border-radius:var(--radius-sm);border:1px solid var(--border);padding:14px 16px" onclick="setPersona('pro')">
+          <div class="li-row"><div class="li-title">💼 The Pro</div><span class="badge badge-blue" id="pm-pro"></span></div>
+          <div class="li-sub">Professional and precise. All business, no fluff.</div>
+        </div>
+        <div class="list-item" style="border-radius:var(--radius-sm);border:1px solid var(--border);padding:14px 16px" onclick="setPersona('coach')">
+          <div class="li-row"><div class="li-title">🏆 The Coach</div><span class="badge badge-green" id="pm-coach"></span></div>
+          <div class="li-sub">Motivating and encouraging. Celebrates your wins, calls out your blindspots.</div>
+        </div>
+        <div class="list-item" style="border-radius:var(--radius-sm);border:1px solid var(--border);padding:14px 16px" onclick="setPersona('assistant')">
+          <div class="li-row"><div class="li-title">🤖 The Assistant</div><span class="badge badge-purple" id="pm-assistant"></span></div>
+          <div class="li-sub">Formal and thorough. Every number, every detail.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rate Cards -->
+<div class="modal-overlay" id="modal-rate-cards">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Rate Cards</div><button class="modal-close" onclick="closeModal('modal-rate-cards')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Override your standard rate for specific clients or job types.</p>
+      <div id="rate-cards-list"></div>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+        <div class="form-section">Add Rate Card</div>
+        <div class="form-group"><label class="form-label">Client</label><input class="form-input" id="rc-client" placeholder="Client name" list="rc-client-list"><datalist id="rc-client-list"></datalist></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Job Type</label><input class="form-input" id="rc-type" placeholder="e.g. After-hours"></div>
+          <div class="form-group"><label class="form-label">Rate ($/hr)</label><input class="form-input" id="rc-rate" type="number" placeholder="95"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addRateCard()">Add Rate Card</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recurring Jobs -->
+<div class="modal-overlay" id="modal-recurring">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Recurring Jobs</div><button class="modal-close" onclick="closeModal('modal-recurring')">✕</button></div>
+    <div class="modal-body">
+      <div id="recurring-list"></div>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+        <div class="form-section">Add Schedule</div>
+        <div class="form-group"><label class="form-label">Client</label><input class="form-input" id="rs-client" placeholder="Client name"></div>
+        <div class="form-group"><label class="form-label">Service Type</label><input class="form-input" id="rs-type" placeholder="e.g. Monthly maintenance"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Frequency</label>
+            <select class="form-input" id="rs-freq"><option value="weekly">Weekly</option><option value="fortnightly">Fortnightly</option><option value="monthly" selected>Monthly</option><option value="quarterly">Quarterly</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">Next Due</label><input class="form-input" id="rs-next" type="date"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addRecurring()">Add Schedule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Job -->
+<div class="modal-overlay" id="modal-view-job">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Job Details</div><button class="modal-close" onclick="closeModal('modal-view-job')">✕</button></div>
+    <div class="modal-body" id="view-job-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="jobToInvoice()">🧾 Create Invoice</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ══ NZ LOCALISATION ══════════════════════════════
+const NZ_CURRENCY = 'NZD';
+const NZ_SYMBOL = 'NZ$';
+const NZ_GST_RATE = 0.15;
+const NZ_COUNTRY = 'New Zealand';
+const NZ_REGION = 'Northland';
+const NZ_WHANGAREI = { lat: -35.7251, lng: 174.3238 };
+const NZ_KERIKERI = { lat: -35.2241, lng: 173.9521 };
+const NZ_KAITAIA = { lat: -35.1133, lng: 173.2641 };
+
+// Override currency formatting for NZ
+function fmtNZD(n) {
+  return 'NZ$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const STORAGE_KEY = 'tradiemate_v13';
+let APP = {
+  profile: null,
+  settings: { rate: 85, callout: 0, billingRound: 30, gstRegistered: true, wakeWord: 'hey tradie', persona: 'mate', ahMultiplier: 1, paymentTerms: 14 },
+  jobs: [], invoices: [], expenses: [], clients: [], quotes: [], rateCards: [], recurring: [],
+  nextInvoiceNum: 1001
+};
+let timerStart = null, timerPause = 0, timerInterval = null, timerRunning = false, timerPaused = false;
+let currentInvoiceId = null, currentJobId = null;
+let currentQuoteLines = [];
+let weatherData = null;
+let recognition = null, isRecording = false;
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(APP)); }
+function load() {
+  const d = localStorage.getItem(STORAGE_KEY);
+  if (d) { try { APP = { ...APP, ...JSON.parse(d) }; } catch(e){} }
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  load();
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hide');
+    if (!APP.profile) {
+      document.getElementById('onboarding').classList.add('active');
+    } else {
+      document.getElementById('app').style.display = 'flex';
+      initApp();
+    }
+  }, 1200);
+});
+
+function initApp() {
+  updateGreeting();
+  updateDashStats();
+  renderJobs();
+  renderInvoices();
+  renderExpenses();
+  renderClients();
+  calcGST Return();
+  renderReports('month');
+  renderRateCards();
+  renderRecurring();
+  updateSettingsDisplay();
+  updateAIStage();
+  populateClientDropdowns();
+  startWeatherWatch();
+  setupVoice();
+  initChat();
+  // Set today's date on expense form
+  document.getElementById('ne-date').value = new Date().toISOString().split('T')[0];
+  // Set default invoice dates
+  const today = new Date();
+  const due = new Date(); due.setDate(due.getDate() + (APP.settings.paymentTerms || 14));
+  document.getElementById('ni-date').value = today.toISOString().split('T')[0];
+  document.getElementById('ni-due').value = due.toISOString().split('T')[0];
+  document.getElementById('ni-rate').value = APP.settings.rate;
+  document.getElementById('sj-rate').value = APP.settings.rate;
+}
+
+// ═══════════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════════
+function obNext(step) {
+  if (step === 2) {
+    const biz = document.getElementById('ob-biz').value.trim();
+    const name = document.getElementById('ob-name').value.trim();
+    if (!biz && !name) { toast('Enter your name or business name', '#ef4444'); return; }
+  }
+  document.getElementById('ob-step-' + step).classList.remove('active');
+  document.getElementById('ob-step-' + (step+1)).classList.add('active');
+}
+
+function obFinish() {
+  APP.profile = {
+    biz: document.getElementById('ob-biz').value.trim() || 'My Trade Business',
+    name: document.getElementById('ob-name').value.trim(),
+    trade: document.getElementById('ob-trade').value,
+    abn: document.getElementById('ob-abn').value.trim(),
+    phone: document.getElementById('ob-phone').value.trim(),
+    email: document.getElementById('ob-email').value.trim(),
+    bank: document.getElementById('ob-bank').value.trim(),
+    bsb: document.getElementById('ob-bsb').value.trim(),
+    acct: document.getElementById('ob-acct').value.trim(),
+    acctName: document.getElementById('ob-acctname').value.trim()
+  };
+  APP.settings.rate = parseFloat(document.getElementById('ob-rate').value) || 85;
+  APP.settings.callout = parseFloat(document.getElementById('ob-callout').value) || 0;
+  APP.settings.billingRound = parseInt(document.getElementById('ob-round').value) || 30;
+  APP.settings.gstRegistered = document.getElementById('ob-gst').checked;
+  save();
+  document.getElementById('onboarding').classList.remove('active');
+  document.getElementById('app').style.display = 'flex';
+  initApp();
+  toast('Welcome to TradieMate! 🎉');
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const sc = document.getElementById('screen-' + name);
+  if (sc) sc.classList.add('active');
+  const nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+  if (name === 'gst_return') calcGST Return();
+  if (name === 'maps') { setTimeout(initMap, 100); }
+  if (name === 'reports') renderReports(currentReportPeriod);
+  if (name === 'ai') { setTimeout(() => document.getElementById('chat-area').scrollTop = 9999, 100); }
+}
+
+// ═══════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+  if (id === 'modal-edit-business') populateBusinessForm();
+  if (id === 'modal-edit-rates') populateRatesForm();
+  if (id === 'modal-edit-bank') populateBankForm();
+  if (id === 'modal-edit-voice') populateVoiceForm();
+  if (id === 'modal-edit-gst') populateGSTForm();
+  if (id === 'modal-persona') updatePersonaModal();
+  if (id === 'modal-rate-cards') renderRateCards();
+  if (id === 'modal-recurring') renderRecurring();
+}
+function closeModal(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); }
+document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open'); });
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function updateGreeting() {
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const name = APP.profile?.name?.split(' ')[0] || APP.profile?.biz?.split(' ')[0] || '';
+  document.getElementById('dash-greeting').textContent = greet + (name ? ', ' + name : '') + ' 👋';
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-NZ', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('topbar-sub').textContent = APP.profile?.biz || 'Solo v1.3';
+}
+
+function updateDashStats() {
+  const now = new Date(), m = now.getMonth(), y = now.getFullYear();
+  const mInv = APP.invoices.filter(i => { const d = new Date(i.date); return d.getMonth()===m && d.getFullYear()===y; });
+  const revenue = mInv.filter(i => i.status === 'paid').reduce((s,i) => s+i.total, 0);
+  const unpaid = APP.invoices.filter(i => i.status !== 'paid').reduce((s,i) => s+i.total, 0);
+  const unpaidCount = APP.invoices.filter(i => i.status !== 'paid').length;
+  const mJobs = APP.jobs.filter(j => { const d = new Date(j.date); return d.getMonth()===m && d.getFullYear()===y; });
+  const mExp = APP.expenses.filter(e => { const d = new Date(e.date); return d.getMonth()===m && d.getFullYear()===y; });
+  const expTotal = mExp.reduce((s,e) => s+e.amount, 0);
+  const avgHrs = mJobs.length ? (mJobs.reduce((s,j) => s+j.minutes,0)/mJobs.length/60).toFixed(1) : '—';
+
+  document.getElementById('dash-revenue').textContent = '$' + revenue.toFixed(0);
+  document.getElementById('dash-rev-sub').textContent = mInv.length + ' invoice' + (mInv.length!==1?'s':'');
+  document.getElementById('dash-unpaid').textContent = '$' + unpaid.toFixed(0);
+  document.getElementById('dash-unpaid-sub').textContent = unpaidCount + ' outstanding';
+  document.getElementById('dash-jobs').textContent = mJobs.length;
+  document.getElementById('dash-jobs-sub').textContent = 'avg ' + avgHrs + ' hrs';
+  document.getElementById('dash-expenses').textContent = '$' + expTotal.toFixed(0);
+  document.getElementById('dash-exp-sub').textContent = mExp.length + ' expense' + (mExp.length!==1?'s':'');
+
+  // Recent jobs on dash
+  const el = document.getElementById('dash-jobs-list');
+  if (!APP.jobs.length) { el.innerHTML = '<div class="empty" style="padding:20px"><div class="empty-text">No jobs yet — start the timer!</div></div>'; return; }
+  el.innerHTML = [...APP.jobs].reverse().slice(0,5).map(j => `
+    <div class="list-item" onclick="viewJob('${j.id}')">
+      <div class="li-row"><div class="li-title">${j.clientName||'Unnamed'}</div><span class="badge badge-blue">${fmtDuration(j.minutes)}</span></div>
+      <div class="li-sub">${j.type} · ${fmtDate(j.date)}</div>
+      ${j.billedAmount ? `<div class="li-sub2" style="color:var(--orange)">$${j.billedAmount.toFixed(2)}</div>` : ''}
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════
+function startTimer() {
+  if (timerRunning) return;
+  timerRunning = true; timerPaused = false;
+  timerStart = Date.now() - timerPause;
+  timerPause = 0;
+  timerInterval = setInterval(tickTimer, 1000);
+  document.getElementById('timer-start-btn').style.display = 'none';
+  document.getElementById('timer-pause-btn').style.display = 'flex';
+  document.getElementById('timer-stop-btn').style.display = 'flex';
+  document.getElementById('timer-status-badge').textContent = 'Running';
+  document.getElementById('timer-status-badge').className = 'badge badge-green';
+  document.getElementById('timer-display').classList.add('running');
+  document.getElementById('timer-info').textContent = 'Timer running...';
+  toast('Timer started ▶');
+}
+
+function pauseTimer() {
+  if (!timerRunning) return;
+  if (!timerPaused) {
+    timerPaused = true; timerPause = Date.now() - timerStart;
+    clearInterval(timerInterval);
+    document.getElementById('timer-pause-btn').textContent = '▶ Resume';
+    document.getElementById('timer-status-badge').textContent = 'Paused';
+    document.getElementById('timer-status-badge').className = 'badge badge-orange';
+    document.getElementById('timer-display').classList.remove('running');
+  } else {
+    timerPaused = false; timerStart = Date.now() - timerPause;
+    timerInterval = setInterval(tickTimer, 1000);
+    document.getElementById('timer-pause-btn').textContent = '⏸ Pause';
+    document.getElementById('timer-status-badge').textContent = 'Running';
+    document.getElementById('timer-status-badge').className = 'badge badge-green';
+    document.getElementById('timer-display').classList.add('running');
+  }
+}
+
+function tickTimer() {
+  const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+  const h = Math.floor(elapsed/3600), m = Math.floor((elapsed%3600)/60), s = elapsed%60;
+  document.getElementById('timer-display').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const hrs = (elapsed/3600).toFixed(2);
+  const rate = APP.settings.rate || 85;
+  document.getElementById('timer-info').textContent = `${hrs} hrs · ~$${(parseFloat(hrs)*rate).toFixed(0)} at $${rate}/hr`;
+}
+
+function stopTimer() {
+  if (!timerRunning) return;
+  clearInterval(timerInterval);
+  timerRunning = false;
+  const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+  const minutes = Math.floor(elapsed / 60);
+  const round = APP.settings.billingRound || 30;
+  const billedMins = Math.ceil(minutes / round) * round;
+  document.getElementById('timer-start-btn').style.display = 'flex';
+  document.getElementById('timer-pause-btn').style.display = 'none';
+  document.getElementById('timer-stop-btn').style.display = 'none';
+  document.getElementById('timer-status-badge').textContent = 'Stopped';
+  document.getElementById('timer-status-badge').className = 'badge';
+  document.getElementById('timer-display').classList.remove('running');
+  document.getElementById('timer-display').textContent = '00:00:00';
+  document.getElementById('timer-info').textContent = 'Ready to start';
+  timerPause = 0;
+
+  // Populate save job modal
+  const rate = APP.settings.rate || 85;
+  const billedAmt = (billedMins / 60) * rate;
+  document.getElementById('sj-duration').textContent = fmtDuration(minutes);
+  document.getElementById('sj-billed').textContent = `Billed: ${fmtDuration(billedMins)} · $${billedAmt.toFixed(2)}`;
+  document.getElementById('sj-type').value = document.getElementById('timer-type-sel').value || '';
+  const clientSel = document.getElementById('timer-client-sel');
+  if (clientSel.value) {
+    const c = APP.clients.find(c => c.id == clientSel.value);
+    if (c) document.getElementById('sj-client').value = c.name;
+  }
+  // Store for modal
+  window._pendingJob = { minutes, billedMins, rate };
+  openModal('modal-save-job');
+}
+
+function saveJobOnly() {
+  const pj = window._pendingJob;
+  const client = document.getElementById('sj-client').value.trim();
+  const rate = parseFloat(document.getElementById('sj-rate').value) || APP.settings.rate;
+  const billedAmt = (pj.billedMins / 60) * rate;
+  const job = {
+    id: Date.now().toString(), date: new Date().toISOString(), clientName: client,
+    type: document.getElementById('sj-type').value.trim() || 'General',
+    notes: document.getElementById('sj-notes').value.trim(),
+    minutes: pj.minutes, billedMins: pj.billedMins, rate, billedAmount: billedAmt
+  };
+  APP.jobs.push(job); save();
+  renderJobs(); updateDashStats(); updateAIStage();
+  closeModal('modal-save-job');
+  ['sj-client','sj-type','sj-notes'].forEach(id => document.getElementById(id).value = '');
+  toast('Job saved ✓');
+}
+
+function saveJobAndInvoice() {
+  const pj = window._pendingJob;
+  const client = document.getElementById('sj-client').value.trim();
+  const rate = parseFloat(document.getElementById('sj-rate').value) || APP.settings.rate;
+  const billedAmt = (pj.billedMins / 60) * rate;
+  const type = document.getElementById('sj-type').value.trim() || 'General';
+  const notes = document.getElementById('sj-notes').value.trim();
+  const job = {
+    id: Date.now().toString(), date: new Date().toISOString(), clientName: client,
+    type, notes, minutes: pj.minutes, billedMins: pj.billedMins, rate, billedAmount: billedAmt
+  };
+  APP.jobs.push(job);
+  // Create invoice
+  createInvoiceFromJob(job);
+  save(); renderJobs(); renderInvoices(); updateDashStats(); updateAIStage();
+  closeModal('modal-save-job');
+  ['sj-client','sj-type','sj-notes'].forEach(id => document.getElementById(id).value = '');
+  toast('Job saved + invoice created ✓');
+  showScreen('invoices');
+}
+
+function createInvoiceFromJob(job) {
+  const gstRegistered = APP.settings.gstRegistered;
+  const gst = gstRegistered ? job.billedAmount * 0.15 : 0;
+  const clientObj = APP.clients.find(c => c.name.toLowerCase() === job.clientName?.toLowerCase());
+  const today = new Date();
+  const due = new Date(); due.setDate(due.getDate() + (APP.settings.paymentTerms||14));
+  const inv = {
+    id: Date.now().toString(), num: APP.nextInvoiceNum++,
+    client: job.clientName || 'Client',
+    clientEmail: clientObj?.email || '',
+    date: today.toISOString().split('T')[0],
+    dueDate: due.toISOString().split('T')[0],
+    desc: job.type + (job.notes ? ' — ' + job.notes : ''),
+    hours: (job.billedMins/60), rate: job.rate,
+    amount: job.billedAmount, gst, total: job.billedAmount + gst,
+    status: 'unpaid', jobId: job.id,
+    lineItems: [{ desc: job.type, qty: parseFloat((job.billedMins/60).toFixed(2)), rate: job.rate, amount: job.billedAmount, type: 'labour' }]
+  };
+  APP.invoices.push(inv); save();
+  return inv;
+}
+
+// ═══════════════════════════════════════════
+// JOBS
+// ═══════════════════════════════════════════
+let currentJobFilter = 'all';
+function filterJobs(period, el) {
+  currentJobFilter = period;
+  document.querySelectorAll('#jobs-filter-tabs .pill-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderJobs();
+}
+
+function renderJobs() {
+  const el = document.getElementById('jobs-list');
+  const now = new Date();
+  let jobs = [...APP.jobs].reverse();
+  if (currentJobFilter === 'today') {
+    const today = now.toISOString().split('T')[0];
+    jobs = jobs.filter(j => j.date.startsWith(today));
+  } else if (currentJobFilter === 'week') {
+    const wStart = new Date(now); wStart.setDate(now.getDate() - now.getDay());
+    jobs = jobs.filter(j => new Date(j.date) >= wStart);
+  } else if (currentJobFilter === 'month') {
+    jobs = jobs.filter(j => { const d = new Date(j.date); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); });
+  }
+  document.getElementById('jobs-count-sub').textContent = jobs.length + ' job' + (jobs.length!==1?'s':'') + ' · ' + fmtDuration(jobs.reduce((s,j)=>s+j.minutes,0)) + ' total';
+  if (!jobs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">⏱</div><div class="empty-text">No jobs in this period</div></div>'; return; }
+  el.innerHTML = jobs.map(j => `
+    <div class="list-item" onclick="viewJob('${j.id}')">
+      <div class="li-row"><div class="li-title">${j.clientName||'Unnamed'}</div><span class="badge badge-blue">${fmtDuration(j.minutes)}</span></div>
+      <div class="li-sub">${j.type||'General'} · ${fmtDate(j.date)}</div>
+      ${j.billedAmount ? `<div class="li-sub2" style="color:var(--orange);font-weight:600">Billed: $${j.billedAmount.toFixed(2)}</div>` : ''}
+      ${j.notes ? `<div class="li-sub2">${j.notes}</div>` : ''}
+    </div>`).join('');
+}
+
+function viewJob(id) {
+  const j = APP.jobs.find(j => j.id == id);
+  if (!j) return;
+  currentJobId = id;
+  document.getElementById('view-job-body').innerHTML = `
+    <div style="background:var(--card2);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;text-align:center">
+      <div style="font-size:12px;color:var(--muted)">Duration</div>
+      <div style="font-size:32px;font-weight:800;color:var(--orange)">${fmtDuration(j.minutes)}</div>
+      ${j.billedMins ? `<div style="font-size:12px;color:var(--muted)">Billed: ${fmtDuration(j.billedMins)}</div>` : ''}
+    </div>
+    <div class="rc-row"><span>Client</span><span class="rc-val">${j.clientName||'—'}</span></div>
+    <div class="rc-row"><span>Type</span><span>${j.type||'—'}</span></div>
+    <div class="rc-row"><span>Date</span><span>${fmtDate(j.date)}</span></div>
+    <div class="rc-row"><span>Rate</span><span>$${j.rate||APP.settings.rate}/hr</span></div>
+    ${j.billedAmount ? `<div class="rc-row"><span>Billed Amount</span><span class="rc-val">$${j.billedAmount.toFixed(2)}</span></div>` : ''}
+    ${j.notes ? `<div style="margin-top:12px;padding:12px;background:var(--card2);border-radius:var(--radius-sm);font-size:13px;color:var(--muted)">${j.notes}</div>` : ''}`;
+  openModal('modal-view-job');
+}
+
+function jobToInvoice() {
+  const j = APP.jobs.find(j => j.id == currentJobId);
+  if (!j) return;
+  const inv = createInvoiceFromJob(j);
+  renderInvoices(); updateDashStats();
+  closeModal('modal-view-job');
+  viewInvoice(inv.id);
+  toast('Invoice created ✓');
+}
+
+function exportJobsCSV() {
+  const rows = [['Date','Client','Type','Duration (min)','Billed (min)','Rate','Amount','Notes']];
+  APP.jobs.forEach(j => rows.push([j.date,j.clientName||'',j.type||'',j.minutes,j.billedMins||'',j.rate||'',j.billedAmount||'',j.notes||'']));
+  downloadCSV(rows, 'tradiemate-jobs.csv');
+}
+
+// ═══════════════════════════════════════════
+// QUOTE BUILDER
+// ═══════════════════════════════════════════
+function addLineItem() {
+  const desc = document.getElementById('qi-desc').value.trim();
+  const qty = parseFloat(document.getElementById('qi-qty').value) || 1;
+  const rate = parseFloat(document.getElementById('qi-rate').value) || (APP.settings.rate || 85);
+  if (!desc) { toast('Add a description', '#ef4444'); return; }
+  const amount = qty * rate;
+  const type = document.getElementById('qi-type').value;
+  const notes = document.getElementById('qi-notes').value.trim();
+  currentQuoteLines.push({ id: Date.now(), desc, qty, rate, amount, type, notes });
+  ['qi-desc','qi-qty','qi-rate','qi-notes'].forEach(id => document.getElementById(id).value = '');
+  closeModal('modal-new-quote');
+  renderQuoteLines();
+  toast('Line item added ✓');
+}
+
+function renderQuoteLines() {
+  const el = document.getElementById('quote-lines-list');
+  const actions = document.getElementById('quote-actions');
+  const summary = document.getElementById('quote-summary');
+  if (!currentQuoteLines.length) {
+    el.innerHTML = '<div class="empty" style="padding:30px"><div class="empty-icon">📋</div><div class="empty-text">Tap + New to start a quote</div></div>';
+    actions.style.display = 'none'; summary.style.display = 'none'; return;
+  }
+  const labour = currentQuoteLines.filter(l=>l.type==='labour').reduce((s,l)=>s+l.amount,0);
+  const materials = currentQuoteLines.filter(l=>l.type==='material').reduce((s,l)=>s+l.amount,0);
+  const subtotal = currentQuoteLines.reduce((s,l)=>s+l.amount,0);
+  const gst = APP.settings.gstRegistered ? subtotal * 0.15 : 0;
+  const total = subtotal + gst;
+  summary.style.display = 'block';
+  document.getElementById('qs-total').textContent = '$' + total.toFixed(2);
+  document.getElementById('qs-labour').textContent = 'Labour: $' + labour.toFixed(0);
+  document.getElementById('qs-materials').textContent = 'Materials: $' + materials.toFixed(0);
+  document.getElementById('qs-gst').textContent = 'GST: $' + gst.toFixed(0);
+  el.innerHTML = '<div class="line-items-list">' + currentQuoteLines.map(l => `
+    <div class="li-card">
+      <div style="flex:1">
+        <div class="li-card-desc">${l.desc}</div>
+        <div style="font-size:11px;color:var(--muted)">${l.qty} × $${l.rate} · <span class="badge badge-grey">${l.type}</span></div>
+        ${l.notes ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${l.notes}</div>` : ''}
+      </div>
+      <div class="li-card-amt">$${l.amount.toFixed(2)}</div>
+      <button class="li-card-del" onclick="removeLineItem(${l.id})">✕</button>
+    </div>`).join('') + '</div>';
+  actions.style.display = 'block';
+}
+
+function removeLineItem(id) { currentQuoteLines = currentQuoteLines.filter(l=>l.id!==id); renderQuoteLines(); }
+function clearQuote() { if (confirm('Clear all line items?')) { currentQuoteLines = []; renderQuoteLines(); } }
+
+function quoteToInvoice() {
+  if (!currentQuoteLines.length) return;
+  const subtotal = currentQuoteLines.reduce((s,l)=>s+l.amount,0);
+  const gst = APP.settings.gstRegistered ? subtotal*0.15 : 0;
+  const total = subtotal + gst;
+  const today = new Date();
+  const due = new Date(); due.setDate(due.getDate() + (APP.settings.paymentTerms||14));
+  const inv = {
+    id: Date.now().toString(), num: APP.nextInvoiceNum++,
+    client: '', clientEmail: '',
+    date: today.toISOString().split('T')[0], dueDate: due.toISOString().split('T')[0],
+    desc: currentQuoteLines.map(l=>l.desc).join(', '),
+    amount: subtotal, gst, total, status: 'unpaid',
+    lineItems: currentQuoteLines.map(l => ({...l}))
+  };
+  // Save quote
+  APP.quotes.push({ id: Date.now().toString(), date: today.toISOString(), lines: currentQuoteLines, total, status: 'converted' });
+  APP.invoices.push(inv); save();
+  currentQuoteLines = []; renderQuoteLines(); renderInvoices(); updateDashStats();
+  closeModal('modal-new-quote');
+  viewInvoice(inv.id);
+  toast('Quote converted to invoice ✓');
+}
+
+function shareQuote() {
+  if (!currentQuoteLines.length) { toast('No line items', '#ef4444'); return; }
+  generateQuotePDF();
+}
+
+// ═══════════════════════════════════════════
+// INVOICES
+// ═══════════════════════════════════════════
+let currentInvoiceFilter = 'all';
+function filterInvoices(filter, el) {
+  currentInvoiceFilter = filter;
+  document.querySelectorAll('#screen-invoices .pill-tab').forEach(t=>t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderInvoices();
+}
+
+function saveInvoice() {
+  const client = document.getElementById('ni-client').value.trim();
+  if (!client) { toast('Client name required', '#ef4444'); return; }
+  const hours = parseFloat(document.getElementById('ni-hours').value) || 0;
+  const rate = parseFloat(document.getElementById('ni-rate').value) || APP.settings.rate;
+  const materials = parseFloat(document.getElementById('ni-materials').value) || 0;
+  const labour = hours * rate;
+  const subtotal = labour + materials;
+  const gst = APP.settings.gstRegistered ? subtotal * 0.15 : 0;
+  const total = subtotal + gst;
+  const clientObj = APP.clients.find(c => c.name.toLowerCase() === client.toLowerCase());
+  const lineItems = [];
+  if (hours > 0) lineItems.push({ desc: 'Labour', qty: hours, rate, amount: labour, type: 'labour' });
+  if (materials > 0) lineItems.push({ desc: 'Materials & Parts', qty: 1, rate: materials, amount: materials, type: 'material' });
+  const inv = {
+    id: Date.now().toString(), num: APP.nextInvoiceNum++,
+    client, clientEmail: document.getElementById('ni-email').value.trim() || clientObj?.email || '',
+    date: document.getElementById('ni-date').value,
+    dueDate: document.getElementById('ni-due').value,
+    desc: document.getElementById('ni-desc').value.trim() || 'Services rendered',
+    hours, rate, amount: subtotal, gst, total, status: 'unpaid',
+    notes: document.getElementById('ni-notes').value.trim(),
+    lineItems
+  };
+  APP.invoices.push(inv); save();
+  renderInvoices(); updateDashStats(); updateAIStage();
+  closeModal('modal-new-invoice');
+  ['ni-client','ni-email','ni-desc','ni-hours','ni-materials','ni-notes'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('ni-rate').value = APP.settings.rate;
+  viewInvoice(inv.id);
+  toast('Invoice created ✓');
+}
+
+function renderInvoices() {
+  const el = document.getElementById('invoices-list');
+  const now = new Date();
+  let invs = [...APP.invoices].reverse();
+  if (currentInvoiceFilter === 'unpaid') invs = invs.filter(i => i.status !== 'paid');
+  else if (currentInvoiceFilter === 'paid') invs = invs.filter(i => i.status === 'paid');
+  else if (currentInvoiceFilter === 'overdue') invs = invs.filter(i => i.status !== 'paid' && new Date(i.dueDate) < now);
+  const totalUnpaid = APP.invoices.filter(i=>i.status!=='paid').reduce((s,i)=>s+i.total,0);
+  const totalPaid = APP.invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+i.total,0);
+  document.getElementById('inv-summary-sub').textContent = `Paid: $${totalPaid.toFixed(0)} · Unpaid: $${totalUnpaid.toFixed(0)}`;
+  if (!invs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🧾</div><div class="empty-text">No invoices here</div></div>'; return; }
+  el.innerHTML = invs.map(inv => {
+    const overdue = inv.status !== 'paid' && new Date(inv.dueDate) < now;
+    const badgeCls = inv.status==='paid' ? 'badge-green' : overdue ? 'badge-red' : 'badge-orange';
+    const badgeTxt = inv.status==='paid' ? 'PAID' : overdue ? 'OVERDUE' : 'UNPAID';
+    return `<div class="list-item" onclick="viewInvoice('${inv.id}')">
+      <div class="li-row"><div class="li-title">${inv.client}</div><span class="badge ${badgeCls}">$${inv.total.toFixed(0)}</span></div>
+      <div class="li-sub">#${inv.num} · ${inv.date} · <span class="badge ${badgeCls}" style="padding:1px 6px">${badgeTxt}</span></div>
+      <div class="li-sub2">${inv.desc?.substring(0,60)||''}</div>
+    </div>`;
+  }).join('');
+  populateClientDropdowns();
+}
+
+function viewInvoice(id) {
+  const inv = APP.invoices.find(i => i.id == id);
+  if (!inv) return;
+  currentInvoiceId = id;
+  const p = APP.profile || {};
+  const now = new Date();
+  const overdue = inv.status !== 'paid' && new Date(inv.dueDate) < now;
+  const badgeCls = inv.status==='paid' ? 'badge-green' : overdue ? 'badge-red' : 'badge-orange';
+  const badgeTxt = inv.status==='paid' ? 'PAID' : overdue ? 'OVERDUE' : 'UNPAID';
+  const lines = inv.lineItems?.length ? inv.lineItems : [{ desc: inv.desc||'Services', qty:1, rate:inv.amount, amount:inv.amount }];
+  document.getElementById('view-invoice-body').innerHTML = `
+    <div class="inv-preview">
+      <div class="inv-preview-header">
+        <div><div class="inv-preview-title">INVOICE</div><div class="inv-preview-num">#${inv.num}</div><span class="badge ${badgeCls}" style="font-size:10px">${badgeTxt}</span></div>
+        <div class="inv-preview-biz"><strong>${p.biz||'Your Business'}</strong><br>${p.abn?'NZBN: '+p.abn+'<br>':''}${p.phone||''}<br>${p.email||''}</div>
+      </div>
+      <div style="margin-bottom:12px"><div style="font-size:10px;color:#888;margin-bottom:2px">BILL TO</div><div style="font-weight:700;font-size:15px">${inv.client}</div>${inv.clientEmail?`<div style="font-size:11px;color:#666">${inv.clientEmail}</div>`:''}</div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:12px"><span>Issued: ${inv.date}</span><span>Due: ${inv.dueDate}</span></div>
+      <div class="inv-line-header"><span class="desc">Description</span><span class="qty">Qty</span><span class="rate">Rate</span><span class="amt">Amt</span></div>
+      ${lines.map(l=>`<div class="inv-line"><span class="desc">${l.desc}</span><span class="qty">${l.qty}</span><span class="rate">$${parseFloat(l.rate).toFixed(0)}</span><span class="amt">$${parseFloat(l.amount).toFixed(2)}</span></div>`).join('')}
+      <div class="inv-totals">
+        <div class="inv-total-row"><span>Subtotal</span><span>$${inv.amount.toFixed(2)}</span></div>
+        ${inv.gst ? `<div class="inv-total-row"><span>GST (10%)</span><span>$${inv.gst.toFixed(2)}</span></div>` : ''}
+        <div class="inv-total-row grand"><span>Total AUD</span><span>$${inv.total.toFixed(2)}</span></div>
+      </div>
+      ${p.bsb ? `<div class="inv-bank"><strong>Payment Details</strong><br>${p.bank||''} · BSB: ${p.bsb} · Account: ${p.acct}<br>Account Name: ${p.acctName||p.biz||''}</div>` : ''}
+      ${inv.notes ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;font-size:11px;color:#666">${inv.notes}</div>` : ''}
+    </div>`;
+  document.getElementById('inv-mark-paid-btn').style.display = inv.status==='paid' ? 'none' : '';
+  openModal('modal-view-invoice');
+}
+
+function markInvoicePaid() {
+  const inv = APP.invoices.find(i => i.id == currentInvoiceId);
+  if (!inv) return;
+  inv.status = 'paid'; inv.paidDate = new Date().toISOString().split('T')[0];
+  save(); renderInvoices(); updateDashStats();
+  closeModal('modal-view-invoice');
+  toast('Invoice marked as paid ✓');
+}
+
+// ═══════════════════════════════════════════
+// PDF GENERATION
+// ═══════════════════════════════════════════
+function generateInvoicePDF(forShare) {
+  const inv = APP.invoices.find(i => i.id == currentInvoiceId);
+  if (!inv) return;
+  const p = APP.profile || {};
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const orange = [249,115,22];
+  const dark = [15,17,23];
+  const grey = [100,116,139];
+  const W = 210, M = 20;
+
+  // Header background
+  doc.setFillColor(...orange);
+  doc.rect(0, 0, W, 45, 'F');
+
+  // Logo / Title
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(28); doc.setFont('helvetica','bold');
+  doc.text('INVOICE', M, 22);
+  doc.setFontSize(11); doc.setFont('helvetica','normal');
+  doc.text('#' + inv.num, M, 30);
+  doc.text(inv.status.toUpperCase(), M, 37);
+
+  // Business details (right side)
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text(p.biz || 'Your Business', W-M, 18, {align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  if (p.abn) doc.text('NZBN: ' + p.abn, W-M, 24, {align:'right'});
+  if (p.phone) doc.text(p.phone, W-M, 29, {align:'right'});
+  if (p.email) doc.text(p.email, W-M, 34, {align:'right'});
+
+  // Bill to + dates
+  doc.setTextColor(...dark);
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...grey);
+  doc.text('BILL TO', M, 55);
+  doc.setTextColor(...dark); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text(inv.client, M, 62);
+  if (inv.clientEmail) { doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...grey); doc.text(inv.clientEmail, M, 67); }
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...grey);
+  doc.text('Issued: ' + inv.date, W-M, 55, {align:'right'});
+  doc.text('Due: ' + inv.dueDate, W-M, 61, {align:'right'});
+
+  // Line items table
+  let y = 80;
+  doc.setFillColor(245,245,245); doc.rect(M, y-5, W-2*M, 8, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...grey);
+  doc.text('DESCRIPTION', M+2, y); doc.text('QTY', 130, y); doc.text('RATE', 155, y); doc.text('AMOUNT', W-M-2, y, {align:'right'});
+  y += 5;
+  doc.setDrawColor(220,220,220); doc.line(M, y, W-M, y);
+
+  const lines = inv.lineItems?.length ? inv.lineItems : [{ desc: inv.desc||'Services', qty:1, rate:inv.amount, amount:inv.amount }];
+  doc.setFont('helvetica','normal'); doc.setTextColor(...dark); doc.setFontSize(10);
+  lines.forEach(l => {
+    y += 8;
+    doc.text(l.desc, M+2, y);
+    doc.text(String(parseFloat(l.qty).toFixed(2)), 130, y);
+    doc.text('$' + parseFloat(l.rate).toFixed(2), 155, y);
+    doc.text('$' + parseFloat(l.amount).toFixed(2), W-M-2, y, {align:'right'});
+    doc.setDrawColor(240,240,240); doc.line(M, y+3, W-M, y+3);
+  });
+
+  // Totals
+  y += 14;
+  doc.setDrawColor(...orange); doc.setLineWidth(0.5); doc.line(130, y-4, W-M, y-4);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...grey);
+  doc.text('Subtotal', 130, y); doc.setTextColor(...dark); doc.text('$' + inv.amount.toFixed(2), W-M-2, y, {align:'right'});
+  if (inv.gst) {
+    y += 7;
+    doc.setTextColor(...grey); doc.text('GST (10%)', 130, y); doc.setTextColor(...dark); doc.text('$' + inv.gst.toFixed(2), W-M-2, y, {align:'right'});
+  }
+  y += 10;
+  doc.setFillColor(...orange); doc.rect(130, y-6, W-M-130, 10, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255,255,255);
+  doc.text('TOTAL AUD', 133, y); doc.text('$' + inv.total.toFixed(2), W-M-2, y, {align:'right'});
+
+  // Bank details
+  if (p.bsb) {
+    y += 18;
+    doc.setFillColor(248,250,252); doc.rect(M, y-6, W-2*M, 26, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...dark);
+    doc.text('Payment Details', M+4, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...grey);
+    doc.text((p.bank||'') + ' · BSB: ' + p.bsb + ' · Account: ' + p.acct, M+4, y+6);
+    doc.text('Account Name: ' + (p.acctName||p.biz||''), M+4, y+12);
+  }
+
+  // Footer
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...grey);
+  doc.text('Generated by TradieMate Solo v1.3', W/2, 285, {align:'center'});
+
+  if (forShare) {
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    const fname = `Invoice_${inv.num}_${inv.client.replace(/\s+/g,'_')}.pdf`;
+    if (navigator.share) {
+      navigator.share({ title: 'Invoice #'+inv.num, files: [new File([blob], fname, {type:'application/pdf'})] })
+        .catch(() => { const a = document.createElement('a'); a.href=url; a.download=fname; a.click(); });
+    } else {
+      const a = document.createElement('a'); a.href=url; a.download=fname; a.click();
+    }
+  } else {
+    doc.save(`Invoice_${inv.num}_${inv.client.replace(/\s+/g,'_')}.pdf`);
+    toast('PDF downloaded ✓');
+  }
+}
+
+function shareInvoicePDF() { generateInvoicePDF(true); toast('Sharing invoice...'); }
+
+function generateQuotePDF() {
+  const p = APP.profile || {};
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const orange = [249,115,22]; const dark = [15,17,23]; const grey = [100,116,139];
+  const W=210, M=20;
+  doc.setFillColor(...orange); doc.rect(0,0,W,45,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(28); doc.setFont('helvetica','bold');
+  doc.text('QUOTE', M, 22);
+  doc.setFontSize(11); doc.setFont('helvetica','normal');
+  doc.text(new Date().toLocaleDateString('en-NZ'), M, 30);
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text(p.biz||'Your Business', W-M, 18, {align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  if (p.abn) doc.text('NZBN: '+p.abn, W-M, 24, {align:'right'});
+  if (p.phone) doc.text(p.phone, W-M, 29, {align:'right'});
+  let y=65;
+  doc.setFillColor(245,245,245); doc.rect(M,y-5,W-2*M,8,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...grey);
+  doc.text('DESCRIPTION',M+2,y); doc.text('QTY',130,y); doc.text('RATE',155,y); doc.text('AMOUNT',W-M-2,y,{align:'right'});
+  y+=5; doc.line(M,y,W-M,y);
+  doc.setFont('helvetica','normal'); doc.setTextColor(...dark); doc.setFontSize(10);
+  currentQuoteLines.forEach(l => {
+    y+=8; doc.text(l.desc,M+2,y); doc.text(String(l.qty),130,y); doc.text('$'+l.rate.toFixed(0),155,y); doc.text('$'+l.amount.toFixed(2),W-M-2,y,{align:'right'});
+    doc.setDrawColor(240,240,240); doc.line(M,y+3,W-M,y+3);
+  });
+  const sub=currentQuoteLines.reduce((s,l)=>s+l.amount,0);
+  const gst=APP.settings.gstRegistered?sub*0.15:0;
+  const total=sub+gst;
+  y+=14;
+  if (gst) { doc.setTextColor(...grey); doc.text('GST (10%)',130,y); doc.setTextColor(...dark); doc.text('$'+gst.toFixed(2),W-M-2,y,{align:'right'}); y+=7; }
+  doc.setFillColor(...orange); doc.rect(130,y-6,W-M-130,10,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255,255,255);
+  doc.text('TOTAL AUD',133,y); doc.text('$'+total.toFixed(2),W-M-2,y,{align:'right'});
+  doc.save('TradieMate_Quote.pdf');
+  toast('Quote PDF downloaded ✓');
+}
+
+// ═══════════════════════════════════════════
+// EXPENSES
+// ═══════════════════════════════════════════
+function saveExpense() {
+  const desc = document.getElementById('ne-desc').value.trim();
+  const amount = parseFloat(document.getElementById('ne-amount').value) || 0;
+  if (!desc || !amount) { toast('Description and amount required', '#ef4444'); return; }
+  const gstIncl = document.getElementById('ne-gst').value;
+  const gstAmt = gstIncl === 'yes' ? Math.round(amount/11*100)/100 : 0;
+  APP.expenses.push({
+    id: Date.now().toString(), desc, amount,
+    gstIncluded: gstIncl, gstAmount: gstAmt,
+    category: document.getElementById('ne-cat').value,
+    date: document.getElementById('ne-date').value || new Date().toISOString().split('T')[0],
+    notes: document.getElementById('ne-notes').value.trim()
+  });
+  save(); renderExpenses(); updateDashStats(); calcGST Return();
+  closeModal('modal-new-expense');
+  ['ne-desc','ne-amount','ne-notes'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('ne-date').value = new Date().toISOString().split('T')[0];
+  toast('Expense saved ✓');
+}
+
+function renderExpenses() {
+  const el = document.getElementById('expenses-list');
+  const now = new Date(), m=now.getMonth(), y=now.getFullYear();
+  const mExp = APP.expenses.filter(e => { const d=new Date(e.date); return d.getMonth()===m && d.getFullYear()===y; });
+  const total=mExp.reduce((s,e)=>s+e.amount,0);
+  const gst=mExp.reduce((s,e)=>s+(e.gstAmount||0),0);
+  document.getElementById('exp-month-total').textContent = '$'+total.toFixed(0);
+  document.getElementById('exp-gst-total').textContent = '$'+gst.toFixed(0);
+  if (!APP.expenses.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">No expenses yet</div></div>'; return; }
+  // Group by category
+  const byCat = {};
+  [...APP.expenses].reverse().slice(0,30).forEach(e => {
+    if (!byCat[e.category]) byCat[e.category] = [];
+    byCat[e.category].push(e);
+  });
+  el.innerHTML = Object.entries(byCat).map(([cat,items]) => `
+    <div class="section-label">${cat}</div>
+    ${items.map(e => `<div class="list-item">
+      <div class="li-row"><div class="li-title">${e.desc}</div><span class="badge badge-orange">$${e.amount.toFixed(2)}</span></div>
+      <div class="li-sub">${e.date}${e.gstAmount ? ' · GST $'+e.gstAmount.toFixed(2) : ''}</div>
+    </div>`).join('')}`).join('');
+}
+
+// ═══════════════════════════════════════════
+// GST Return
+// ═══════════════════════════════════════════
+function calcGST Return() {
+  const now = new Date();
+  const quarter = Math.floor(now.getMonth() / 3);
+  const qStart = new Date(now.getFullYear(), quarter*3, 1);
+  const qEnd = new Date(now.getFullYear(), (quarter+1)*3, 0);
+  const qInv = APP.invoices.filter(i => { const d=new Date(i.date); return d>=qStart && d<=qEnd; });
+  const qExp = APP.expenses.filter(e => { const d=new Date(e.date); return d>=qStart && d<=qEnd; });
+  const G1=qInv.reduce((s,i)=>s+i.total,0);
+  const G10=qExp.filter(e=>e.category==='Tools & Equipment').reduce((s,e)=>s+e.amount,0);
+  const G11=qExp.filter(e=>e.category!=='Tools & Equipment').reduce((s,e)=>s+e.amount,0);
+  const _1A=APP.settings.gstRegistered ? qInv.reduce((s,i)=>s+(i.gst||0),0) : 0;
+  const _1B=qExp.reduce((s,e)=>s+(e.gstAmount||0),0);
+  const net=_1A-_1B;
+  const qLabels=['Q1 (Jul–Sep)','Q2 (Oct–Dec)','Q3 (Jan–Mar)','Q4 (Apr–Jun)'];
+  const dueDates=['28 Oct','28 Feb','28 Apr','28 Jul'];
+  document.getElementById('gst_return-period-label').textContent = qLabels[quarter]+' '+now.getFullYear();
+  document.getElementById('gst_return-due-label').textContent = dueDates[quarter]+' '+(now.getFullYear()+(quarter===3?1:0));
+  document.getElementById('gst_return-net-dir').textContent = net>=0 ? 'Payable' : 'Refundable';
+  const fmt=v=>'$'+Math.abs(v).toFixed(2);
+  document.getElementById('gst_return-g1').textContent=fmt(G1);
+  document.getElementById('gst_return-g10').textContent=fmt(G10);
+  document.getElementById('gst_return-g11').textContent=fmt(G11);
+  document.getElementById('gst_return-1a').textContent=fmt(_1A);
+  document.getElementById('gst_return-1b').textContent=fmt(_1B);
+  document.getElementById('gst_return-w1').textContent='$0.00';
+  document.getElementById('gst_return-net').textContent=(net<0?'-':'')+fmt(net);
+  document.getElementById('gst_return-net').style.color = net>0 ? 'var(--orange)' : 'var(--green)';
+}
+
+function exportGST ReturnPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const p=APP.profile||{};
+  const orange=[249,115,22]; const dark=[15,17,23]; const grey=[100,116,139];
+  const W=210,M=20;
+  doc.setFillColor(...orange); doc.rect(0,0,W,35,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(22); doc.setFont('helvetica','bold');
+  doc.text('GST Return SUMMARY', M, 20);
+  doc.setFontSize(10); doc.setFont('helvetica','normal');
+  doc.text(document.getElementById('gst_return-period-label').textContent, M, 28);
+  doc.setTextColor(...dark); doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text(p.biz||'', W-M, 20, {align:'right'});
+  const fields=[
+    ['G1','Total Sales',document.getElementById('gst_return-g1').textContent],
+    ['G10','Capital Purchases',document.getElementById('gst_return-g10').textContent],
+    ['G11','Non-capital Purchases',document.getElementById('gst_return-g11').textContent],
+    ['1A','GST on Sales',document.getElementById('gst_return-1a').textContent],
+    ['1B','GST Credits',document.getElementById('gst_return-1b').textContent],
+    ['NET','Net GST',document.getElementById('gst_return-net').textContent]
+  ];
+  let y=50;
+  fields.forEach(([code,label,val]) => {
+    doc.setFillColor(248,250,252); doc.rect(M,y-5,W-2*M,10,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...orange); doc.text(code,M+3,y);
+    doc.setTextColor(...dark); doc.text(label,M+20,y);
+    doc.text(val,W-M-3,y,{align:'right'});
+    y+=14;
+  });
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...grey);
+  doc.text('Generated by TradieMate Solo v1.3 · ⚠️ This is an estimate only. Verify with your accountant.', W/2, 285, {align:'center'});
+  doc.save('TradieMate_GST Return_'+new Date().toISOString().split('T')[0]+'.pdf');
+  toast('GST Return PDF downloaded ✓');
+}
+
+function exportGST ReturnCSV() {
+  const rows=[['Field','Label','Value'],
+    ['G1','Total Sales',document.getElementById('gst_return-g1').textContent],
+    ['G10','Capital Purchases',document.getElementById('gst_return-g10').textContent],
+    ['G11','Non-capital Purchases',document.getElementById('gst_return-g11').textContent],
+    ['1A','GST on Sales',document.getElementById('gst_return-1a').textContent],
+    ['1B','GST Credits',document.getElementById('gst_return-1b').textContent],
+    ['NET','Net GST',document.getElementById('gst_return-net').textContent]
+  ];
+  downloadCSV(rows,'tradiemate-gst_return.csv');
+}
+
+// ═══════════════════════════════════════════
+// REPORTS
+// ═══════════════════════════════════════════
+let currentReportPeriod = 'month';
+function switchReport(period, el) {
+  currentReportPeriod = period;
+  document.querySelectorAll('#screen-reports .pill-tab').forEach(t=>t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderReports(period);
+}
+
+function renderReports(period) {
+  const now=new Date(), el=document.getElementById('reports-content');
+  let start, end, label;
+  if (period==='month') {
+    start=new Date(now.getFullYear(),now.getMonth(),1);
+    end=new Date(now.getFullYear(),now.getMonth()+1,0);
+    label=now.toLocaleDateString('en-NZ',{month:'long',year:'numeric'});
+  } else if (period==='quarter') {
+    const q=Math.floor(now.getMonth()/3);
+    start=new Date(now.getFullYear(),q*3,1);
+    end=new Date(now.getFullYear(),(q+1)*3,0);
+    label='Q'+(q+1)+' '+now.getFullYear();
+  } else {
+    const fy=now.getMonth()>=6;
+    start=new Date(fy?now.getFullYear():now.getFullYear()-1,6,1);
+    end=new Date(fy?now.getFullYear()+1:now.getFullYear(),5,30);
+    label='FY '+(start.getFullYear())+'-'+(end.getFullYear()%100);
+  }
+  const invs=APP.invoices.filter(i=>{const d=new Date(i.date);return d>=start&&d<=end;});
+  const exps=APP.expenses.filter(e=>{const d=new Date(e.date);return d>=start&&d<=end;});
+  const jobs=APP.jobs.filter(j=>{const d=new Date(j.date);return d>=start&&d<=end;});
+  const revenue=invs.filter(i=>i.status==='paid').reduce((s,i)=>s+i.total,0);
+  const outstanding=invs.filter(i=>i.status!=='paid').reduce((s,i)=>s+i.total,0);
+  const expenses=exps.reduce((s,e)=>s+e.amount,0);
+  const gstCred=exps.reduce((s,e)=>s+(e.gstAmount||0),0);
+  const gstPay=invs.filter(i=>i.status==='paid').reduce((s,i)=>s+(i.gst||0),0);
+  const profit=revenue-expenses;
+  const avgJob=jobs.length?jobs.reduce((s,j)=>s+j.minutes,0)/jobs.length:0;
+  const topClient=getTopClient(invs);
+  const topExp=getTopExpCat(exps);
+  el.innerHTML=`
+    <div class="report-card">
+      <div class="rc-title">📊 ${label} Overview</div>
+      <div class="rc-row"><span>Revenue (paid)</span><span class="rc-val">$${revenue.toFixed(2)}</span></div>
+      <div class="rc-row"><span>Outstanding</span><span style="color:var(--red);font-weight:700">$${outstanding.toFixed(2)}</span></div>
+      <div class="rc-row"><span>Total Expenses</span><span class="rc-val">$${expenses.toFixed(2)}</span></div>
+      <div class="rc-row"><span>Net Profit</span><span style="color:${profit>=0?'var(--green)':'var(--red)'};font-weight:700">$${profit.toFixed(2)}</span></div>
+    </div>
+    <div class="report-card">
+      <div class="rc-title">⏱ Jobs Summary</div>
+      <div class="rc-row"><span>Total Jobs</span><span class="rc-val">${jobs.length}</span></div>
+      <div class="rc-row"><span>Total Hours</span><span class="rc-val">${(jobs.reduce((s,j)=>s+j.minutes,0)/60).toFixed(1)} hrs</span></div>
+      <div class="rc-row"><span>Avg Job Duration</span><span class="rc-val">${fmtDuration(Math.round(avgJob))}</span></div>
+      <div class="rc-row"><span>Top Client</span><span class="rc-val">${topClient||'—'}</span></div>
+    </div>
+    <div class="report-card">
+      <div class="rc-title">💰 GST Summary</div>
+      <div class="rc-row"><span>GST Collected</span><span class="rc-val">$${gstPay.toFixed(2)}</span></div>
+      <div class="rc-row"><span>GST Credits</span><span style="color:var(--green);font-weight:700">$${gstCred.toFixed(2)}</span></div>
+      <div class="rc-row"><span>Net GST</span><span style="color:${(gstPay-gstCred)>=0?'var(--orange)':'var(--green)'};font-weight:700">$${(gstPay-gstCred).toFixed(2)}</span></div>
+    </div>
+    <div class="report-card">
+      <div class="rc-title">💸 Expense Breakdown</div>
+      ${getExpBreakdown(exps)}
+      <div class="rc-row" style="margin-top:4px"><span>Top Category</span><span class="rc-val">${topExp||'—'}</span></div>
+    </div>`;
+}
+
+function getTopClient(invs) {
+  if (!invs.length) return null;
+  const by={};
+  invs.forEach(i=>{if(!by[i.client])by[i.client]=0; by[i.client]+=i.total;});
+  return Object.entries(by).sort((a,b)=>b[1]-a[1])[0]?.[0];
+}
+function getTopExpCat(exps) {
+  if (!exps.length) return null;
+  const by={};
+  exps.forEach(e=>{if(!by[e.category])by[e.category]=0; by[e.category]+=e.amount;});
+  return Object.entries(by).sort((a,b)=>b[1]-a[1])[0]?.[0];
+}
+function getExpBreakdown(exps) {
+  if (!exps.length) return '<div class="rc-row"><span>No expenses</span><span>—</span></div>';
+  const by={};
+  exps.forEach(e=>{if(!by[e.category])by[e.category]=0; by[e.category]+=e.amount;});
+  return Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([cat,amt])=>`<div class="rc-row"><span>${cat}</span><span>$${amt.toFixed(0)}</span></div>`).join('');
+}
+
+function exportAllCSV() {
+  // Export jobs
+  const rows=[['=== JOBS ==='],['Date','Client','Type','Minutes','Billed Mins','Rate','Amount']];
+  APP.jobs.forEach(j=>rows.push([j.date,j.clientName,j.type,j.minutes,j.billedMins||'',j.rate||'',j.billedAmount||'']));
+  rows.push([],['=== INVOICES ==='],['Num','Client','Date','Due','Amount','GST','Total','Status']);
+  APP.invoices.forEach(i=>rows.push([i.num,i.client,i.date,i.dueDate,i.amount,i.gst||0,i.total,i.status]));
+  rows.push([],['=== EXPENSES ==='],['Date','Description','Category','Amount','GST']);
+  APP.expenses.forEach(e=>rows.push([e.date,e.desc,e.category,e.amount,e.gstAmount||0]));
+  downloadCSV(rows,'tradiemate-full-export.csv');
+}
+
+// ═══════════════════════════════════════════
+// CLIENTS
+// ═══════════════════════════════════════════
+function saveClient() {
+  const name = document.getElementById('nc-name').value.trim();
+  if (!name) { toast('Name required', '#ef4444'); return; }
+  const rate = parseFloat(document.getElementById('nc-rate').value) || null;
+  const client = {
+    id: Date.now().toString(), name,
+    phone: document.getElementById('nc-phone').value.trim(),
+    email: document.getElementById('nc-email').value.trim(),
+    address: document.getElementById('nc-address').value.trim(),
+    trade: document.getElementById('nc-trade').value,
+    rate, notes: document.getElementById('nc-notes').value.trim(),
+    date: new Date().toISOString()
+  };
+  if (client.address) geocodeClient(client);
+  APP.clients.push(client); save();
+  renderClients(); populateClientDropdowns();
+  closeModal('modal-new-client');
+  ['nc-name','nc-phone','nc-email','nc-address','nc-notes','nc-rate'].forEach(id=>document.getElementById(id).value='');
+  toast('Client saved ✓');
+}
+
+function geocodeClient(client) {
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(client.address)}`)
+    .then(r=>r.json()).then(d=>{if(d[0]){client.lat=parseFloat(d[0].lat);client.lng=parseFloat(d[0].lon);save();}}).catch(()=>{});
+}
+
+function renderClients() {
+  const el=document.getElementById('clients-list');
+  const q=document.getElementById('client-search')?.value.toLowerCase()||'';
+  const filtered=APP.clients.filter(c=>c.name.toLowerCase().includes(q)||(c.address||'').toLowerCase().includes(q));
+  document.getElementById('clients-count-sub').textContent = APP.clients.length+' client'+(APP.clients.length!==1?'s':'');
+  if (!filtered.length){el.innerHTML='<div class="empty"><div class="empty-icon">👷</div><div class="empty-text">No clients yet</div></div>';return;}
+  el.innerHTML=filtered.map(c=>`
+    <div class="list-item">
+      <div class="li-row"><div class="li-title">${c.name}</div><span class="badge badge-blue">${c.trade}</span></div>
+      <div class="li-sub">${[c.phone,c.email].filter(Boolean).join(' · ')}</div>
+      ${c.address?`<div class="li-sub2">📍 ${c.address}</div>`:''}
+      ${c.rate?`<div class="li-sub2" style="color:var(--orange)">$${c.rate}/hr</div>`:''}
+    </div>`).join('');
+}
+
+function populateClientDropdowns() {
+  const opts='<option value="">Select client (optional)</option>'+APP.clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const timerSel=document.getElementById('timer-client-sel');
+  if (timerSel) timerSel.innerHTML=opts;
+  // Datalists
+  const names=APP.clients.map(c=>`<option value="${c.name}">`).join('');
+  ['ni-client-list','sj-client-list','rc-client-list'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=names;});
+}
+
+// ═══════════════════════════════════════════
+// RATE CARDS
+// ═══════════════════════════════════════════
+function renderRateCards() {
+  const el=document.getElementById('rate-cards-list');
+  if (!el) return;
+  if (!APP.rateCards.length){el.innerHTML='<div class="empty-text" style="color:var(--muted);font-size:13px;text-align:center;padding:16px">No rate cards yet</div>';return;}
+  el.innerHTML=APP.rateCards.map((r,i)=>`
+    <div class="rate-row">
+      <div><div class="rate-type">${r.client} · ${r.type}</div><div style="font-size:11px;color:var(--muted)">Custom rate</div></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="rate-val">$${r.rate}/hr</div>
+        <button class="btn btn-sm btn-secondary" onclick="APP.rateCards.splice(${i},1);save();renderRateCards()">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function addRateCard() {
+  const client=document.getElementById('rc-client').value.trim();
+  const type=document.getElementById('rc-type').value.trim();
+  const rate=parseFloat(document.getElementById('rc-rate').value)||0;
+  if (!client||!rate){toast('Client and rate required','#ef4444');return;}
+  APP.rateCards.push({client,type:type||'Standard',rate});
+  save();renderRateCards();
+  ['rc-client','rc-type','rc-rate'].forEach(id=>document.getElementById(id).value='');
+  toast('Rate card added ✓');
+}
+
+// ═══════════════════════════════════════════
+// RECURRING
+// ═══════════════════════════════════════════
+function renderRecurring() {
+  const el=document.getElementById('recurring-list');
+  if (!el) return;
+  if (!APP.recurring.length){el.innerHTML='<div class="empty-text" style="color:var(--muted);font-size:13px;text-align:center;padding:16px">No recurring jobs scheduled</div>';return;}
+  el.innerHTML=APP.recurring.map((r,i)=>`
+    <div class="sched-card">
+      <div class="sched-top">
+        <div class="sched-client">${r.client}</div>
+        <button class="btn btn-sm btn-secondary" onclick="APP.recurring.splice(${i},1);save();renderRecurring()">✕</button>
+      </div>
+      <div class="sched-details">${r.type} · ${r.freq}</div>
+      <div class="sched-due">Next due: ${r.next||'—'}</div>
+    </div>`).join('');
+}
+
+function addRecurring() {
+  const client=document.getElementById('rs-client').value.trim();
+  const type=document.getElementById('rs-type').value.trim();
+  const freq=document.getElementById('rs-freq').value;
+  const next=document.getElementById('rs-next').value;
+  if (!client){toast('Client required','#ef4444');return;}
+  APP.recurring.push({client,type:type||'Maintenance',freq,next});
+  save();renderRecurring();
+  ['rs-client','rs-type','rs-next'].forEach(id=>document.getElementById(id).value='');
+  toast('Recurring job added ✓');
+}
+
+// ═══════════════════════════════════════════
+// AI STAGE
+// ═══════════════════════════════════════════
+const AI_STAGES=[
+  {name:'Observer',min:0,label:'Watching & learning your patterns'},
+  {name:'Learner',min:5,label:'Starting to understand your business'},
+  {name:'Advisor',min:15,label:'Making informed recommendations'},
+  {name:'Partner',min:30,label:'Proactive business insights'},
+  {name:'TradeMate',min:60,label:'Full business intelligence activated'}
+];
+
+function updateAIStage() {
+  const total=APP.jobs.length+APP.invoices.length+APP.clients.length;
+  const stage=AI_STAGES.slice().reverse().find(s=>total>=s.min)||AI_STAGES[0];
+  const nextStage=AI_STAGES[AI_STAGES.indexOf(stage)+1];
+  const pct=nextStage?Math.min(100,Math.round((total-stage.min)/(nextStage.min-stage.min)*100)):100;
+  document.getElementById('ai-stage-badge').textContent=stage.name;
+  document.getElementById('ai-stage-label').textContent='AI Stage: '+stage.name+' — '+stage.label;
+  document.getElementById('ai-stage-pct').textContent=pct+'%';
+  document.getElementById('ai-stage-fill').style.width=pct+'%';
+}
+
+// ═══════════════════════════════════════════
+// AI CHAT
+// ═══════════════════════════════════════════
+const PERSONA={
+  mate:{name:"The Mate",greeting:"Kia ora! What do you need to know?",thinking:"Lemme have a look...",unknown:"Nah, I don't have enough data on that yet. Keep logging jobs and I'll get smarter!"},
+  pro:{name:"The Pro",greeting:"TradieMate ready. How can I assist?",thinking:"Processing...",unknown:"Insufficient data to answer that query accurately."},
+  coach:{name:"The Coach",greeting:"Kia ora! What can I help you with today?",thinking:"Digging into your numbers...",unknown:"I don't have enough data yet — but keep logging and I'll get there!"},
+  assistant:{name:"The Assistant",greeting:"Good day. I am ready to assist with your business queries.",thinking:"Analysing your data...",unknown:"I am unable to provide an accurate response without sufficient data."}
+};
+
+function initChat() {
+  const p=APP.settings.persona||'mate';
+  document.getElementById('ai-persona-sub').textContent=PERSONA[p].name+' · Your smart business advisor';
+  updatePersonaModal();
+  addAIMsg(PERSONA[p].greeting);
+}
+
+function addAIMsg(text) {
+  const area=document.getElementById('chat-area');
+  const div=document.createElement('div');
+  div.className='msg ai'; div.textContent=text;
+  area.appendChild(div);
+  area.scrollTop=area.scrollHeight;
+}
+function addUserMsg(text) {
+  const area=document.getElementById('chat-area');
+  const div=document.createElement('div');
+  div.className='msg user'; div.textContent=text;
+  area.appendChild(div);
+  area.scrollTop=area.scrollHeight;
+}
+
+function chatKeydown(e) { if(e.key==='Enter' && !e.shiftKey){e.preventDefault();sendChat();} }
+function autoResizeChat(el){el.style.height='42px';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+
+function sendChat() {
+  const inp=document.getElementById('chat-in');
+  const q=inp.value.trim();
+  if (!q) return;
+  inp.value=''; inp.style.height='42px';
+  addUserMsg(q);
+  const thinking=document.createElement('div');
+  thinking.className='msg ai thinking';
+  thinking.textContent=PERSONA[APP.settings.persona||'mate'].thinking;
+  document.getElementById('chat-area').appendChild(thinking);
+  setTimeout(()=>{
+    thinking.remove();
+    addAIMsg(processAIQuery(q));
+  },600);
+}
+function quickAsk(q){document.getElementById('chat-in').value=q;sendChat();}
+
+function processAIQuery(q) {
+  const p=APP.settings.persona||'mate';
+  const ql=q.toLowerCase();
+  const now=new Date(),m=now.getMonth(),y=now.getFullYear();
+  const mInv=APP.invoices.filter(i=>{const d=new Date(i.date);return d.getMonth()===m&&d.getFullYear()===y;});
+  const mJobs=APP.jobs.filter(j=>{const d=new Date(j.date);return d.getMonth()===m&&d.getFullYear()===y;});
+  const mExp=APP.expenses.filter(e=>{const d=new Date(e.date);return d.getMonth()===m&&d.getFullYear()===y;});
+
+  if (ql.includes('earn')||ql.includes('revenue')||ql.includes('income')||ql.includes('month')) {
+    const paid=mInv.filter(i=>i.status==='paid').reduce((s,i)=>s+i.total,0);
+    const unpaid=mInv.filter(i=>i.status!=='paid').reduce((s,i)=>s+i.total,0);
+    if (p==='mate') return `This month you've pocketed $${paid.toFixed(0)}. Still got $${unpaid.toFixed(0)} in outstanding invoices. ${unpaid>0?'Chase those up!':'Clean slate, legend!'}`;
+    if (p==='coach') return `Great work! Revenue this month: $${paid.toFixed(0)} collected. $${unpaid.toFixed(0)} still outstanding. Keep following up — that's money you've earned!`;
+    return `Monthly revenue: $${paid.toFixed(2)} collected. $${unpaid.toFixed(2)} outstanding across ${mInv.filter(i=>i.status!=='paid').length} invoice(s).`;
+  }
+  if (ql.includes('job')||ql.includes('how many')) {
+    const total=mJobs.length;
+    const hrs=(mJobs.reduce((s,j)=>s+j.minutes,0)/60).toFixed(1);
+    const avg=total?(mJobs.reduce((s,j)=>s+j.minutes,0)/total/60).toFixed(1):'0';
+    if (p==='mate') return `You've done ${total} job${total!==1?'s':''} this month — that's ${hrs} hours on the tools. Average job's ${avg} hrs.`;
+    return `${total} jobs this month. Total: ${hrs} hours. Average: ${avg} hours/job.`;
+  }
+  if (ql.includes('expense')||ql.includes('cost')) {
+    const total=mExp.reduce((s,e)=>s+e.amount,0);
+    const gst=mExp.reduce((s,e)=>s+(e.gstAmount||0),0);
+    const byCat={};
+    mExp.forEach(e=>{if(!byCat[e.category])byCat[e.category]=0;byCat[e.category]+=e.amount;});
+    const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+    if (p==='mate') return `Expenses this month: $${total.toFixed(0)}. You can claim $${gst.toFixed(0)} in GST credits. Biggest spend: ${top?top[0]+' ($'+top[1].toFixed(0)+')':'nothing yet'}.`;
+    return `Total expenses: $${total.toFixed(2)}. GST credits: $${gst.toFixed(2)}. Primary category: ${top?top[0]:'-'}.`;
+  }
+  if (ql.includes('quote')||ql.includes('estimate')||ql.includes('how much')) {
+    const rate=APP.settings.rate||85;
+    const avgJob=APP.jobs.length?APP.jobs.reduce((s,j)=>s+j.minutes,0)/APP.jobs.length:240;
+    const est=((avgJob/60)*rate).toFixed(0);
+    if (p==='mate') return `Based on your average job length (${(avgJob/60).toFixed(1)} hrs) at your rate of $${rate}/hr, a typical job runs around $${est} + GST. Want me to build a full quote?`;
+    return `Based on ${APP.jobs.length} historical jobs, average duration: ${(avgJob/60).toFixed(1)} hours. Estimated value at $${rate}/hr: $${est} + GST.`;
+  }
+  if (ql.includes('gst_return')||ql.includes('gst')||ql.includes('tax')) {
+    const q2=Math.floor(now.getMonth()/3);
+    const qStart=new Date(now.getFullYear(),q2*3,1);
+    const qEnd=new Date(now.getFullYear(),(q2+1)*3,0);
+    const qInv=APP.invoices.filter(i=>{const d=new Date(i.date);return d>=qStart&&d<=qEnd;});
+    const qExp=APP.expenses.filter(e=>{const d=new Date(e.date);return d>=qStart&&d<=qEnd;});
+    const gstPay=qInv.reduce((s,i)=>s+(i.gst||0),0);
+    const gstCred=qExp.reduce((s,e)=>s+(e.gstAmount||0),0);
+    const net=gstPay-gstCred;
+    if (p==='mate') return `This quarter you've collected $${gstPay.toFixed(0)} in GST and can claim $${gstCred.toFixed(0)} back. Net GST ${net>=0?'payable':'refundable'}: $${Math.abs(net).toFixed(0)}.`;
+    return `Quarter GST collected: $${gstPay.toFixed(2)}. GST credits: $${gstCred.toFixed(2)}. Net ${net>=0?'payable':'refundable'}: $${Math.abs(net).toFixed(2)}.`;
+  }
+  if (ql.includes('charge')||ql.includes('rate')||ql.includes('price')) {
+    const rate=APP.settings.rate||85;
+    const h1=rate.toFixed(0), h2=(rate*1.5).toFixed(0), full=(rate*8).toFixed(0);
+    if (p==='mate') return `Your standard rate is $${h1}/hr. Half day ~$${(rate*4).toFixed(0)}, full day ~$${full}. After-hours? I'd be hitting $${h2}/hr.`;
+    return `Standard rate: $${h1}/hr. Suggested: half-day $${(rate*4).toFixed(0)}, full day $${full}, after-hours $${h2}/hr.`;
+  }
+  if (ql.includes('client')) {
+    if (!APP.clients.length) return p==='mate'?"You haven't added any clients yet, mate. Get some in there!":"No clients on record yet.";
+    const top=getTopClient(APP.invoices);
+    return p==='mate'?`You've got ${APP.clients.length} client${APP.clients.length!==1?'s':''} on the books. Top earner: ${top||'—'}.`:`${APP.clients.length} client${APP.clients.length!==1?'s':''} on record. Top client by revenue: ${top||'—'}.`;
+  }
+  if (ql.includes('hello')||ql.includes('hi ')||ql.includes("g'day")||ql.includes('gday')||ql.includes('hey')) {
+    return PERSONA[p].greeting;
+  }
+  if (ql.includes('profit')) {
+    const rev=mInv.filter(i=>i.status==='paid').reduce((s,i)=>s+i.total,0);
+    const exp=mExp.reduce((s,e)=>s+e.amount,0);
+    const prof=rev-exp;
+    if (p==='mate') return `This month: earned $${rev.toFixed(0)}, spent $${exp.toFixed(0)}, profit $${prof.toFixed(0)}. ${prof>0?'Not bad!':'Watch those expenses.'}`;
+    return `Revenue: $${rev.toFixed(2)}. Expenses: $${exp.toFixed(2)}. Net profit: $${prof.toFixed(2)}.`;
+  }
+  return PERSONA[p].unknown;
+}
+
+function setPersona(p) {
+  APP.settings.persona=p; save();
+  updatePersonaModal();
+  document.getElementById('ai-persona-sub').textContent=PERSONA[p].name+' · Your smart business advisor';
+  closeModal('modal-persona');
+  const area=document.getElementById('chat-area');
+  area.innerHTML='';
+  addAIMsg(PERSONA[p].greeting);
+  toast('Persona: '+PERSONA[p].name);
+}
+
+function updatePersonaModal() {
+  const p=APP.settings.persona||'mate';
+  ['mate','pro','coach','assistant'].forEach(k=>{
+    const el=document.getElementById('pm-'+k);
+    if (el) el.textContent=k===p?'Active':'';
+  });
+}
+
+// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+function updateSettingsDisplay() {
+  if (!APP.profile) return;
+  document.getElementById('set-biz-name').textContent=APP.profile.biz||'—';
+  document.getElementById('set-biz-trade').textContent=(APP.profile.trade||'—')+' · NZBN: '+(APP.profile.abn||'Not set');
+  document.getElementById('set-biz-sub').textContent=(APP.profile.biz||'—')+' · '+(APP.profile.trade||'—');
+  document.getElementById('set-rates-sub').textContent='$'+(APP.settings.rate||85)+'/hr · Round to '+(APP.settings.billingRound||30)+'min';
+  document.getElementById('set-bank-sub').textContent=APP.profile.bsb?'BSB '+APP.profile.bsb+' · Acc '+APP.profile.acct:'Not set';
+  document.getElementById('set-voice-sub').textContent=(APP.settings.wakeWord||'Not set')+' · '+(PERSONA[APP.settings.persona||'mate']?.name||'The Mate');
+  document.getElementById('set-gst-sub').textContent=APP.settings.gstRegistered?'GST Registered (10%)':'Not GST registered';
+}
+
+function populateBusinessForm() {
+  const p=APP.profile||{};
+  ['biz','name','abn','phone','email','address','website'].forEach(f=>{
+    const el=document.getElementById('eb-'+f);
+    if (el) el.value=p[f]||'';
+  });
+  const tradeEl=document.getElementById('eb-trade');
+  if (tradeEl&&p.trade) tradeEl.value=p.trade;
+}
+function populateRatesForm() {
+  document.getElementById('er-rate').value=APP.settings.rate||85;
+  document.getElementById('er-callout').value=APP.settings.callout||0;
+  document.getElementById('er-round').value=APP.settings.billingRound||30;
+  document.getElementById('er-terms').value=APP.settings.paymentTerms||14;
+  document.getElementById('er-ah').value=APP.settings.ahMultiplier||1;
+}
+function populateBankForm() {
+  const p=APP.profile||{};
+  ['bank','bsb','acct'].forEach(f=>{const el=document.getElementById('bk-'+f);if(el)el.value=p[f]||'';});
+  const nm=document.getElementById('bk-name');if(nm)nm.value=p.acctName||'';
+}
+function populateVoiceForm() {
+  document.getElementById('vx-wake').value=APP.settings.wakeWord||'hey tradie';
+  document.getElementById('vx-persona').value=APP.settings.persona||'mate';
+}
+function populateGSTForm() {
+  document.getElementById('gst-toggle').checked=!!APP.settings.gstRegistered;
+}
+
+function saveBusinessSettings() {
+  if (!APP.profile) APP.profile={};
+  APP.profile.biz=document.getElementById('eb-biz').value.trim();
+  APP.profile.name=document.getElementById('eb-name').value.trim();
+  APP.profile.abn=document.getElementById('eb-abn').value.trim();
+  APP.profile.trade=document.getElementById('eb-trade').value;
+  APP.profile.phone=document.getElementById('eb-phone').value.trim();
+  APP.profile.email=document.getElementById('eb-email').value.trim();
+  APP.profile.address=document.getElementById('eb-address').value.trim();
+  APP.profile.website=document.getElementById('eb-website').value.trim();
+  save();updateSettingsDisplay();updateGreeting();closeModal('modal-edit-business');toast('Business details saved ✓');
+}
+function saveRatesSettings() {
+  APP.settings.rate=parseFloat(document.getElementById('er-rate').value)||85;
+  APP.settings.callout=parseFloat(document.getElementById('er-callout').value)||0;
+  APP.settings.billingRound=parseInt(document.getElementById('er-round').value)||30;
+  APP.settings.paymentTerms=parseInt(document.getElementById('er-terms').value)||14;
+  APP.settings.ahMultiplier=parseFloat(document.getElementById('er-ah').value)||1;
+  save();updateSettingsDisplay();closeModal('modal-edit-rates');toast('Rates saved ✓');
+}
+function saveBankSettings() {
+  if (!APP.profile) APP.profile={};
+  APP.profile.bank=document.getElementById('bk-bank').value.trim();
+  APP.profile.bsb=document.getElementById('bk-bsb').value.trim();
+  APP.profile.acct=document.getElementById('bk-acct').value.trim();
+  APP.profile.acctName=document.getElementById('bk-name').value.trim();
+  save();updateSettingsDisplay();closeModal('modal-edit-bank');toast('Bank details saved ✓');
+}
+function saveVoiceSettings() {
+  APP.settings.wakeWord=document.getElementById('vx-wake').value.trim().toLowerCase()||'hey tradie';
+  APP.settings.persona=document.getElementById('vx-persona').value;
+  save();updateSettingsDisplay();closeModal('modal-edit-voice');toast('Voice settings saved ✓');
+}
+function saveGSTSettings() {
+  APP.settings.gstRegistered=document.getElementById('gst-toggle').checked;
+  save();updateSettingsDisplay();calcGST Return();closeModal('modal-edit-gst');toast('GST settings saved ✓');
+}
+function toggleGST(el){APP.settings.gstRegistered=el.checked;save();}
+
+// ═══════════════════════════════════════════
+// WEATHER
+// ═══════════════════════════════════════════
+function startWeatherWatch() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    fetchWeather(pos.coords.latitude,pos.coords.longitude);
+    setInterval(()=>fetchWeather(pos.coords.latitude,pos.coords.longitude),30*60*1000);
+  },null,{timeout:10000});
+}
+function fetchWeather(lat,lng) {
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m,wind_gusts_10m,weather_code,precipitation&wind_speed_unit=kmh&timezone=Pacific%2FAuckland`)
+    .then(r=>r.json()).then(d=>{
+      const c=d.current;
+      const gust=c.wind_gusts_10m;
+      const icons={0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',51:'🌦',61:'🌧',71:'🌨',80:'🌧',95:'⛈'};
+      const icon=icons[Math.floor(c.weather_code/10)*10]||icons[c.weather_code]||'🌤';
+      document.getElementById('weather-mini').textContent=icon;
+      const alert=document.getElementById('weather-alert');
+      if (gust>45){
+        alert.className='weather-alert visible danger';
+        document.getElementById('wa-icon').textContent='🚨';
+        document.getElementById('wa-title').textContent=`Dangerous gusts: ${gust}km/h`;
+        document.getElementById('wa-detail').textContent='Site work not recommended. Check with supervisor.';
+      } else if (gust>30){
+        alert.className='weather-alert visible';
+        document.getElementById('wa-icon').textContent='⚠️';
+        document.getElementById('wa-title').textContent=`Wind gusts: ${gust}km/h`;
+        document.getElementById('wa-detail').textContent=`${c.temperature_2m}°C · Secure loose materials, work with caution.`;
+      } else {
+        alert.className='weather-alert';
+      }
+    }).catch(()=>{});
+}
+
+// ═══════════════════════════════════════════
+// VOICE
+// ═══════════════════════════════════════════
+function setupVoice() {
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if (!SR) return;
+  recognition=new SR();
+  recognition.continuous=true; recognition.interimResults=false; recognition.lang='en-NZ';
+  recognition.onresult=e=>{
+    const t=e.results[e.results.length-1][0].transcript.toLowerCase().trim();
+    handleVoiceCommand(t);
+  };
+  recognition.onerror=()=>{};
+  try{recognition.start();}catch(e){}
+}
+function handleVoiceCommand(text) {
+  const wake=APP.settings?.wakeWord||'hey tradie';
+  if (text.includes(wake)) {
+    document.getElementById('wake-indicator').classList.add('active');
+    setTimeout(()=>document.getElementById('wake-indicator').classList.remove('active'),3000);
+    const cmd=text.replace(wake,'').trim();
+    if (cmd.includes('start job')||cmd.includes('start timer')) startTimer();
+    else if ((cmd.includes('stop')||cmd.includes('finish'))&&timerRunning) stopTimer();
+    else if (cmd.includes('quote')) showScreen('quote');
+    else if (cmd.includes('invoice')) showScreen('invoices');
+    else if (cmd.includes('home')||cmd.includes('dashboard')) showScreen('dash');
+    else if (cmd.includes('clients')) showScreen('clients');
+    else if (cmd.includes('gst_return')||cmd.includes('tax')) showScreen('gst_return');
+    else if (cmd) { showScreen('ai'); document.getElementById('chat-in').value=cmd; sendChat(); }
+  }
+}
+function toggleMic() {
+  const btn=document.getElementById('mic-btn');
+  isRecording=!isRecording;
+  btn.textContent=isRecording?'🔴':'🎙';
+  if (!isRecording&&recognition){recognition.stop();setTimeout(()=>{try{recognition.start();}catch(e){}},500);}
+  if (isRecording) toast('Listening...','#3b82f6');
+}
+
+// ═══════════════════════════════════════════
+// BACKUP
+// ═══════════════════════════════════════════
+function backupData() {
+  const json=JSON.stringify(APP,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='tradiemate-backup-'+new Date().toISOString().split('T')[0]+'.json';
+  a.click(); URL.revokeObjectURL(url);
+  toast('Backup downloaded ✓');
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'});
+}
+function fmtDuration(mins) {
+  if (!mins) return '0min';
+  const h=Math.floor(mins/60),m=mins%60;
+  return h>0 ? h+'h '+(m?m+'m':'') : m+'min';
+}
+function downloadCSV(rows,filename) {
+  const csv=rows.map(r=>r.map(v=>JSON.stringify(v??'')).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV downloaded ✓');
+}
+function toast(msg,color) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=color||'var(--card)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ═══════════════════════════════════════════
+// MAPS MODULE
+// ═══════════════════════════════════════════
+// AMC NAVIGATION — by Vex @ AMC inNOVAtions · NZ Edition 🇳🇿
+// Powered by OpenStreetMap · OSRM · Overpass
+// ═══════════════════════════════════════════
+
+// ── State ──────────────────────────────────
+let tradieMap = null;
+let mapMarkers = [];
+let mapFilter = 'today';
+let routeLayer = null;
+let routeWaypoints = [];
+let wazeEnabled = false;
+let googleMapsKey = null;
+let wazeAlertMarkers = [];
+let poiMarkers = [];
+let userLocationMarker = null;
+let userLat = -33.8688, userLng = 151.2093;
+let googleTileLayer = null;
+let mapVoiceActive = false;
+let mapVoiceRecognition = null;
+let activePOILayers = new Set();
+let favouritePOIs = [];
+let mapTier = 'solo';
+let currentRouteStops = [];
+
+// Trade → supplier OSM tags
+const TRADE_SUPPLIERS = {
+  'Arborist':     { label:'Tree Suppliers', query:'name~"Husqvarna|Stihl|Arborist|Tree"' },
+  'Gardener':    { label:'Garden Suppliers', query:'name~"Mitre 10|Palmers|Oderings|Bunnings|Garden"' },
+  'Electrician':  { label:'Electrical Suppliers', query:'name~"Haymans|Rexel|Electrical|NHP"' },
+  'Plumber':      { label:'Plumbing Supplies', query:'name~"Mico|Plumbing World|Tradelink"' },
+  'Builder':      { label:'Builders Supplies', query:'name~"Mitre 10|PlaceMakers|Carters|Bunnings"' },
+  'Painter':      { label:'Paint Suppliers', query:'name~"Dulux|Taubmans|Haymes|Wattyl"' },
+  'Carpenter':    { label:'Timber Suppliers', query:'name~"Bunnings|Carter|Hyne|Timber"' },
+  'Concreter':    { label:'Concrete Suppliers', query:'name~"Boral|Hanson|Holcim|Concrete"' },
+  'Tiler':        { label:'Tile Suppliers', query:'name~"Beaumont|Tile|CTM|National Tiles"' },
+  'Landscaper':   { label:'Landscape Supplies', query:'name~"Mitre 10|Palmers|Landscape|Turf"' },
+  'default':      { label:'Trade Suppliers', query:'shop=doityourself' }
+};
+
+// ── Init ────────────────────────────────────
+function initMap() {
+  const profile = JSON.parse(localStorage.getItem('tm_profile') || '{}');
+  mapTier = (profile.tier || 'solo').toLowerCase();
+
+  if (tradieMap) {
+    tradieMap.invalidateSize();
+    loadMapJobs();
+    return;
+  }
+
+  userLat = parseFloat(localStorage.getItem('tm_home_lat') || '-35.7251');
+  userLng = parseFloat(localStorage.getItem('tm_home_lng') || '174.3238');
+  googleMapsKey = localStorage.getItem('tm_gmaps_key');
+  wazeEnabled = localStorage.getItem('tm_waze_enabled') === 'true';
+  favouritePOIs = JSON.parse(localStorage.getItem('tm_fav_pois') || '[]');
+
+  tradieMap = L.map('tradie-map', {
+    center: [userLat, userLng],
+    zoom: 13,
+    zoomControl: false,
+    attributionControl: false
+  });
+
+  L.control.zoom({ position: 'topright' }).addTo(tradieMap);
+
+  setMapTiles();
+
+  // AMC Navigation NZ watermark
+  const amcCredit = L.control({ position: 'bottomleft' });
+  amcCredit.onAdd = () => {
+    const d = L.DomUtil.create('div');
+    d.innerHTML = '<div style="background:rgba(15,17,23,.8);color:#f97316;font-size:10px;font-weight:800;padding:4px 10px;border-radius:6px;letter-spacing:.5px;border:1px solid rgba(249,115,22,.3)">🦊 AMC Navigation NZ</div>';
+    return d;
+  };
+  amcCredit.addTo(tradieMap);
+
+  // Live location watch
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      localStorage.setItem('tm_home_lat', userLat);
+      localStorage.setItem('tm_home_lng', userLng);
+      updateUserMarker();
+    }, null, { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 });
+
+    navigator.geolocation.getCurrentPosition(pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      tradieMap.setView([userLat, userLng], 13);
+      updateUserMarker();
+      loadMapJobs();
+      if (wazeEnabled) loadWazeAlerts();
+    }, () => { updateUserMarker(); loadMapJobs(); });
+  } else {
+    updateUserMarker();
+    loadMapJobs();
+  }
+
+  if (googleMapsKey) document.getElementById('badge-gmaps')?.classList.add('connected-badge');
+  if (wazeEnabled) document.getElementById('badge-waze')?.classList.add('connected-badge');
+  loadMapPrefs();
+  initMapVoice();
+  renderFavPOIs();
+}
+
+function setMapTiles() {
+  if (googleTileLayer) { tradieMap.removeLayer(googleTileLayer); googleTileLayer = null; }
+  if (googleMapsKey) {
+    googleTileLayer = L.tileLayer(
+      `https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}`,
+      { subdomains: '0123', maxZoom: 20 }
+    ).addTo(tradieMap);
+  } else {
+    L.tileLayer('https://{s}.gst_returnemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19, subdomains: 'abcd'
+    }).addTo(tradieMap);
+  }
+}
+
+function updateUserMarker() {
+  const icon = L.divIcon({
+    html: `<div style="width:16px;height:16px;background:#f97316;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 5px rgba(249,115,22,.25)"></div>`,
+    className: '', iconAnchor: [8, 8]
+  });
+  if (userLocationMarker) tradieMap.removeLayer(userLocationMarker);
+  userLocationMarker = L.marker([userLat, userLng], { icon, zIndexOffset: 1000 })
+    .addTo(tradieMap).bindPopup('<b>📍 You are here</b>');
+}
+
+// ── Job Markers ────────────────────────────
+function setMapFilter(f, el) {
+  mapFilter = f;
+  document.querySelectorAll('#screen-maps .pill-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  loadMapJobs();
+}
+
+function loadMapJobs() {
+  if (!tradieMap) return;
+  mapMarkers.forEach(m => tradieMap.removeLayer(m));
+  mapMarkers = [];
+  currentRouteStops = [];
+
+  const jobs = JSON.parse(localStorage.getItem('tm_jobs') || '[]');
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+  const effectiveFilter = (mapTier === 'lite') ? 'today' : mapFilter;
+
+  const filtered = jobs.filter(j => {
+    if (!j.address && !(j.lat && j.lng)) return false;
+    if (effectiveFilter === 'today') return (j.date||j.start||'').startsWith(todayStr);
+    if (effectiveFilter === 'week') return new Date(j.date||j.start||0) >= weekStart;
+    return true;
+  });
+
+  currentRouteStops = filtered;
+  const bounds = [[userLat, userLng]];
+
+  filtered.forEach((job, idx) => {
+    if (job.lat && job.lng) {
+      placeJobMarker(job, idx, bounds);
+    } else if (job.address) {
+      geocodeAddress(job.address, (lat, lng) => {
+        job.lat = lat; job.lng = lng;
+        placeJobMarker(job, idx, bounds);
+        if (bounds.length > 2) { try { tradieMap.fitBounds(bounds, { padding: [60,60] }); } catch(e){} }
+      });
+    }
+  });
+
+  if (bounds.length > 2) setTimeout(() => { try { tradieMap.fitBounds(bounds, { padding:[60,60] }); } catch(e){} }, 700);
+  if (mapTier === 'solo' && filtered.length >= 2) setTimeout(() => checkAISuggestion(filtered), 3500);
+}
+
+function placeJobMarker(job, idx, bounds) {
+  const lat = parseFloat(job.lat), lng = parseFloat(job.lng);
+  if (isNaN(lat)||isNaN(lng)) return;
+  const colors = ['#f97316','#3b82f6','#22c55e','#a855f7','#ef4444','#eab308','#06b6d4','#ec4899'];
+  const color = colors[idx % colors.length];
+  const label = job.status === 'completed' ? '✓' : String(idx+1);
+  const icon = L.divIcon({
+    html: `<div style="background:${color};color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:2px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.5)">${label}</div>`,
+    className: '', iconAnchor: [17,34]
+  });
+  const client = job.client||job.client_name||'Client';
+  const addr = (job.address||'').replace(/'/g,"\\'");
+  const dur = job.billed_minutes ? `${Math.round(job.billed_minutes/60*10)/10}h` : '';
+  const popup = `<div style="min-width:210px;font-family:system-ui">
+    <div style="font-weight:800;font-size:15px;margin-bottom:3px">${idx+1}. ${client}</div>
+    <div style="font-size:12px;color:#888;margin-bottom:3px">${job.address||''}</div>
+    <div style="font-size:12px;margin-bottom:10px">${job.trade_type||''} ${dur?'· '+dur:''} ${job.status?'· '+job.status:''}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="navigateToJob(${lat},${lng},'${addr}')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">🗺 Navigate</button>
+      <button onclick="setAsNextStop(${lat},${lng},'${client}')" style="background:#1a1d27;color:#f97316;border:1px solid #f97316;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">⭐ Next</button>
+      ${wazeEnabled?`<button onclick="wazeToJob(${lat},${lng})" style="background:#33ccff;color:#000;border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer">Waze</button>`:''}
+    </div></div>`;
+  const marker = L.marker([lat,lng],{icon}).addTo(tradieMap).bindPopup(popup,{maxWidth:270});
+  mapMarkers.push(marker);
+  bounds.push([lat,lng]);
+}
+
+function geocodeAddress(address, cb) {
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address+', New Zealand')}&limit=1&countrycodes=nz`,
+    { headers:{'Accept-Language':'en','User-Agent':'TradieMatePWA/1.3'} })
+  .then(r=>r.json()).then(d=>{ if(d&&d[0]) cb(parseFloat(d[0].lat),parseFloat(d[0].lon)); }).catch(()=>{});
+}
+
+// ── Route Optimiser ──────────────────────────
+function optimiseRoute() {
+  let jobs = mapMarkers.map((m,i)=>({ latlng:m.getLatLng(), label:`Stop ${i+1}` }));
+  if (mapTier==='lite' && jobs.length>2) {
+    showToast('Lite: 2-stop max. Upgrade to Solo for unlimited routing 🚀','warn');
+    jobs = jobs.slice(0,2);
+  }
+  if (jobs.length<2) { showToast('Need at least 2 jobs on the map','info'); return; }
+
+  let remaining=[...jobs], ordered=[], cur={lat:userLat,lng:userLng};
+  while (remaining.length) {
+    let best=null,bestD=Infinity,bestI=0;
+    remaining.forEach((j,i)=>{ const d=Math.hypot(j.latlng.lat-cur.lat,j.latlng.lng-cur.lng); if(d<bestD){bestD=d;best=j;bestI=i;} });
+    ordered.push(best); cur={lat:best.latlng.lat,lng:best.latlng.lng}; remaining.splice(bestI,1);
+  }
+  drawRoute([{lat:userLat,lng:userLng},...ordered.map(j=>({lat:j.latlng.lat,lng:j.latlng.lng}))]);
+  showRouteSummary(ordered);
+  showToast('Route optimised 🔀','success');
+}
+
+function drawRoute(waypoints) {
+  if (routeLayer) tradieMap.removeLayer(routeLayer);
+  routeWaypoints = waypoints;
+  const coords = waypoints.map(w=>`${w.lng},${w.lat}`).join(';');
+  fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`)
+  .then(r=>r.json()).then(data=>{
+    if (!data.routes?.[0]) return;
+    const route = data.routes[0];
+    routeLayer = L.geoJSON(route.geometry,{
+      style:{color:'#f97316',weight:5,opacity:.85,lineCap:'round',lineJoin:'round'}
+    }).addTo(tradieMap);
+    tradieMap.fitBounds(routeLayer.getBounds(),{padding:[50,50]});
+    const km=Math.round(route.distance/100)/10;
+    const mins=Math.round(route.duration/60);
+    const time=mins>=60?`${Math.floor(mins/60)}h ${mins%60}m`:`${mins} min`;
+    document.getElementById('route-info').textContent=`${waypoints.length-1} stops · ${km} km · ${time}`;
+  }).catch(()=>showToast('Route failed — check connection','warn'));
+}
+
+function showRouteSummary(stops) {
+  document.getElementById('route-summary').style.display='block';
+  document.getElementById('route-stops').innerHTML=stops.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0">
+      <span style="background:#f97316;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">${i+1}</span>
+      <span style="flex:1;color:var(--muted)">${s.label}</span>
+      <button onclick="navigateToJob(${s.latlng.lat},${s.latlng.lng},'')" style="background:none;border:none;color:#f97316;font-size:11px;font-weight:700;cursor:pointer">Go →</button>
+    </div>`).join('');
+}
+
+function setAsNextStop(lat,lng,label) {
+  tradieMap.closePopup();
+  drawRoute([{lat:userLat,lng:userLng},{lat,lng}]);
+  document.getElementById('route-info').textContent=`Routing to: ${label}`;
+  document.getElementById('route-summary').style.display='block';
+  showToast(`Routing to ${label}`,'success');
+}
+
+// ── Navigation ───────────────────────────────
+function startNavigation() {
+  const dest = routeWaypoints[1] || mapMarkers[0]?.getLatLng();
+  if (!dest) return;
+  navigateToJob(dest.lat||dest.lat, dest.lng||dest.lng, '');
+}
+
+function navigateToJob(lat,lng,address) {
+  if (wazeEnabled) {
+    window.location.href=`waze://?ll=${lat},${lng}&navigate=yes`;
+    setTimeout(()=>window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`,'_blank'),1500);
+  } else if (/Android/i.test(navigator.userAgent)) {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,'_blank');
+  } else {
+    window.location.href=`maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`;
+    setTimeout(()=>window.open(`https://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`,'_blank'),800);
+  }
+}
+
+function wazeToJob(lat,lng) {
+  window.location.href=`waze://?ll=${lat},${lng}&navigate=yes`;
+  setTimeout(()=>window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`,'_blank'),1500);
+}
+
+// ── POI Layers ───────────────────────────────
+function togglePOILayer(type,btn) {
+  if (activePOILayers.has(type)) {
+    activePOILayers.delete(type);
+    poiMarkers.filter(m=>m.poiType===type).forEach(m=>tradieMap.removeLayer(m));
+    poiMarkers=poiMarkers.filter(m=>m.poiType!==type);
+    if(btn) btn.classList.remove('active-badge');
+  } else {
+    activePOILayers.add(type);
+    if(btn) btn.classList.add('active-badge');
+    loadPOILayer(type);
+  }
+}
+
+function loadPOILayer(type) {
+  if (type==='fav') { renderFavPOIs(); return; }
+  const pad=0.07;
+  const bbox=`${userLat-pad},${userLng-pad},${userLat+pad},${userLng+pad}`;
+  let q='';
+  if (type==='fuel') q=`node["amenity"="fuel"](${bbox});`;
+  else if (type==='food') q=`node["amenity"~"cafe|fast_food|restaurant|bakery"](${bbox});`;
+  else if (type==='supplier') {
+    const profile=JSON.parse(localStorage.getItem('tm_profile')||'{}');
+    const sup=TRADE_SUPPLIERS[profile.trade_type]||TRADE_SUPPLIERS['default'];
+    q=`node[${sup.query}](${bbox});`;
+  }
+  if (!q) return;
+  fetch(`https://overpass-api.de/api/interpreter?data=[out:json];${encodeURIComponent(q)}out body;`)
+  .then(r=>r.json()).then(data=>{
+    const emoji=type==='fuel'?'⛽':type==='food'?'🍔':'🔧';
+    (data.elements||[]).slice(0,25).forEach(el=>{
+      if (!el.lat||!el.lon) return;
+      const name=el.tags?.name||(type==='fuel'?'Petrol Station':type==='food'?'Food Stop':'Trade Supplier');
+      const km=Math.round(Math.hypot(el.lat-userLat,el.lon-userLng)*111*10)/10;
+      const icon=L.divIcon({html:`<div style="font-size:22px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.7))">${emoji}</div>`,className:'',iconAnchor:[11,11]});
+      const marker=L.marker([el.lat,el.lon],{icon}).addTo(tradieMap).bindPopup(`
+        <div style="min-width:170px">
+          <b>${emoji} ${name}</b>${el.tags?.brand?`<br><small style="color:#888">${el.tags.brand}</small>`:''}
+          <br><small style="color:#888">~${km} km away</small>
+          <div style="margin-top:8px;display:flex;gap:6px">
+            <button onclick="navigateToJob(${el.lat},${el.lon},'')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Navigate →</button>
+            <button onclick="saveFavPOI(${el.lat},${el.lon},'${name.replace(/'/g,"\\'")}','${emoji}')" style="background:#1a1d27;color:#f97316;border:1px solid #f97316;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">★ Save</button>
+          </div></div>`);
+      marker.poiType=type;
+      poiMarkers.push(marker);
+    });
+    showToast(`${data.elements?.length||0} ${type} stops nearby`,'info');
+  }).catch(()=>showToast('POI search unavailable','warn'));
+}
+
+function saveFavPOI(lat,lng,name,emoji) {
+  favouritePOIs.push({lat,lng,name,emoji,id:Date.now()});
+  localStorage.setItem('tm_fav_pois',JSON.stringify(favouritePOIs));
+  showToast(`${emoji} ${name} saved ★`,'success');
+  tradieMap.closePopup();
+}
+
+function renderFavPOIs() {
+  if (!tradieMap) return;
+  poiMarkers.filter(m=>m.poiType==='fav').forEach(m=>tradieMap.removeLayer(m));
+  favouritePOIs.forEach(p=>{
+    const icon=L.divIcon({html:`<div style="font-size:20px">${p.emoji}<span style="font-size:10px">⭐</span></div>`,className:'',iconAnchor:[10,10]});
+    const marker=L.marker([p.lat,p.lng],{icon}).addTo(tradieMap).bindPopup(`
+      <div><b>${p.emoji} ${p.name}</b><br><small style="color:#888">Saved favourite</small>
+      <div style="margin-top:8px;display:flex;gap:6px">
+        <button onclick="navigateToJob(${p.lat},${p.lng},'')" style="background:#f97316;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Navigate →</button>
+        <button onclick="removeFavPOI(${p.id})" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Remove</button>
+      </div></div>`);
+    marker.poiType='fav';
+    poiMarkers.push(marker);
+  });
+}
+
+function removeFavPOI(id) {
+  favouritePOIs=favouritePOIs.filter(p=>p.id!==id);
+  localStorage.setItem('tm_fav_pois',JSON.stringify(favouritePOIs));
+  poiMarkers.filter(m=>m.poiType==='fav').forEach(m=>tradieMap.removeLayer(m));
+  poiMarkers=poiMarkers.filter(m=>m.poiType!=='fav');
+  renderFavPOIs();
+  tradieMap.closePopup();
+  showToast('Removed from favourites','info');
+}
+
+// ── Waze Alert Layer ──────────────────────────
+async function loadWazeAlerts() {
+  wazeAlertMarkers.forEach(m=>tradieMap.removeLayer(m));
+  wazeAlertMarkers=[];
+  const pad=0.15;
+  const bbox=`${userLat-pad},${userLng-pad},${userLat+pad},${userLng+pad}`;
+  try {
+    const res=await fetch(`https://www.waze.com/row-rtserver/web/TGeoRSS?tk=community&bbox=${bbox}&types=alerts,traffic&format=JSON`);
+    const data=await res.json();
+    const typeMap={POLICE:'🚔',HAZARD:'⚠️',ACCIDENT:'🚨',JAM:'🚦',ROAD_CLOSED:'🚧'};
+    let count=0;
+    (data.alerts||[]).forEach(alert=>{
+      const emoji=typeMap[alert.type]||'⚠️';
+      const icon=L.divIcon({html:`<div style="font-size:22px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.7))">${emoji}</div>`,className:'',iconAnchor:[11,11]});
+      const age=Math.round((Date.now()-alert.pubMillis)/60000);
+      const marker=L.marker([alert.location.y,alert.location.x],{icon}).addTo(tradieMap).bindPopup(
+        `<b>${emoji} ${alert.type}</b><br><small>${alert.street||'Unknown road'}</small><br><small style="color:#ef4444">Reported ${age}min ago</small><br><span style="font-size:10px;color:#888">Community report · Unverified</span>`);
+      wazeAlertMarkers.push(marker);
+      count++;
+    });
+    if (count>0) showToast(`🚔 ${count} Waze alerts in your area`,'info');
+  } catch(e) { /* CORS — silent fail */ }
+}
+
+function toggleTrafficLayer() {
+  if (!googleMapsKey) {
+    showToast('Connect Google Maps in Settings for live traffic','info');
+    openModal('modal-map-settings');
+    return;
+  }
+  showToast('Traffic data included in Google Maps layer','info');
+}
+
+// ── AI Route Suggestion (Solo only, non-annoying) ──
+let aiSuggestionShown = false;
+function checkAISuggestion(jobs) {
+  if (aiSuggestionShown) return;
+  aiSuggestionShown = true;
+  const profile=JSON.parse(localStorage.getItem('tm_profile')||'{}');
+  const sup=TRADE_SUPPLIERS[profile.trade_type];
+  if (!sup) return;
+  const banner=document.getElementById('ai-map-suggestion');
+  if (banner) {
+    banner.innerHTML=`💡 ${sup.label} near your route — tap <b>🔧</b> to show`;
+    banner.style.display='block';
+    setTimeout(()=>{ if(banner) banner.style.display='none'; },8000);
+  }
+}
+
+// ── Voice Control (Lite + Solo) ───────────────
+function initMapVoice() {
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if (!SR) return;
+  mapVoiceRecognition=new SR();
+  mapVoiceRecognition.continuous=false;
+  mapVoiceRecognition.lang='en-NZ';
+  mapVoiceRecognition.interimResults=false;
+  mapVoiceRecognition.onresult=e=>handleMapVoiceCommand(e.results[0][0].transcript.toLowerCase().trim());
+  mapVoiceRecognition.onend=()=>{ mapVoiceActive=false; const b=document.getElementById('btn-map-voice'); if(b){b.textContent='🎙';b.style.background='';} };
+  mapVoiceRecognition.onerror=()=>{ mapVoiceActive=false; const b=document.getElementById('btn-map-voice'); if(b){b.textContent='🎙';b.style.background='';} };
+}
+
+function toggleMapVoice() {
+  if (!mapVoiceRecognition) { showToast('Voice not supported on this device','warn'); return; }
+  const btn=document.getElementById('btn-map-voice');
+  if (mapVoiceActive) {
+    mapVoiceRecognition.stop(); mapVoiceActive=false;
+    if(btn){btn.textContent='🎙';btn.style.background='';}
+  } else {
+    mapVoiceRecognition.start(); mapVoiceActive=true;
+    if(btn){btn.textContent='🔴';btn.style.background='#ef4444';}
+    showToast('Listening…','info');
+  }
+}
+
+function handleMapVoiceCommand(cmd) {
+  // Navigation
+  if (/next job|navigate|go to first|first stop/.test(cmd)) {
+    if (mapMarkers.length>0) { const ll=mapMarkers[0].getLatLng(); navigateToJob(ll.lat,ll.lng,''); speak('Navigating to job one'); }
+    else speak('No jobs on the map');
+    return;
+  }
+  const jobMatch=cmd.match(/job\s*(\d+)/);
+  if (jobMatch) {
+    const n=parseInt(jobMatch[1])-1;
+    if (mapMarkers[n]) { const ll=mapMarkers[n].getLatLng(); navigateToJob(ll.lat,ll.lng,''); speak(`Navigating to job ${n+1}`); }
+    else speak(`Job ${n+1} not found`);
+    return;
+  }
+  // Route
+  if (/optimis|best route|sort.*jobs/.test(cmd)) { optimiseRoute(); speak('Optimising your route'); return; }
+  // POI
+  if (/fuel|petrol|servo/.test(cmd)) { togglePOILayer('fuel',document.querySelector('[data-poi="fuel"]')); speak('Showing nearby petrol stations'); return; }
+  if (/food|lunch|smoko|coffee|cafe|eat/.test(cmd)) { togglePOILayer('food',document.querySelector('[data-poi="food"]')); speak('Showing food stops near you'); return; }
+  if (/supplier|hardware|trade store/.test(cmd)) { togglePOILayer('supplier',document.querySelector('[data-poi="supplier"]')); speak('Showing trade suppliers'); return; }
+  if (/favourite|favorites|saved/.test(cmd)) { togglePOILayer('fav',document.querySelector('[data-poi="fav"]')); speak('Showing your saved stops'); return; }
+  // Waze
+  if (/waze|police|alerts|hazard/.test(cmd)) {
+    if (wazeEnabled) { loadWazeAlerts(); speak('Loading Waze alerts'); }
+    else speak('Enable Waze in map settings first');
+    return;
+  }
+  // Map control
+  if (/refresh|reload/.test(cmd)) { refreshMap(); speak('Map refreshed'); return; }
+  if (/my location|centre|center|where am i/.test(cmd)) { tradieMap.setView([userLat,userLng],14); speak('Centred on your location'); return; }
+  if (/zoom in/.test(cmd)) { tradieMap.zoomIn(); speak('Zooming in'); return; }
+  if (/zoom out/.test(cmd)) { tradieMap.zoomOut(); speak('Zooming out'); return; }
+
+  speak('Try: next job, job two, optimise route, show fuel, smoko stops, or zoom in');
+}
+
+function speak(text) {
+  if (!text||!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-NZ'; u.rate=1.05; u.pitch=1;
+  window.speechSynthesis.speak(u);
+}
+
+// ── Settings ─────────────────────────────────
+function saveGoogleMapsKey() {
+  const key=document.getElementById('gmap-key-input')?.value.trim();
+  if (!key) { showToast('Enter a valid API key','warn'); return; }
+  localStorage.setItem('tm_gmaps_key',key);
+  googleMapsKey=key;
+  document.getElementById('badge-gmaps')?.classList.add('connected-badge');
+  setMapTiles();
+  showToast('Google Maps connected ✓','success');
+  closeModal('modal-map-settings');
+}
+
+function enableWaze() {
+  wazeEnabled=true;
+  localStorage.setItem('tm_waze_enabled','true');
+  document.getElementById('badge-waze')?.classList.add('connected-badge');
+  const btn=document.getElementById('btn-waze-connect');
+  if (btn) btn.textContent='✓ Waze Enabled';
+  loadWazeAlerts();
+  showToast('Waze alerts enabled ✓','success');
+}
+
+function connectGoogleMaps() { openModal('modal-map-settings'); }
+function connectWaze() { openModal('modal-map-settings'); }
+
+function saveMapPrefs() {
+  ['pref-avoid-tolls','pref-avoid-highways','pref-start-home'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) localStorage.setItem('tm_map_'+id,el.checked);
+  });
+}
+
+function loadMapPrefs() {
+  ['pref-avoid-tolls','pref-avoid-highways'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.checked=localStorage.getItem('tm_map_'+id)==='true';
+  });
+  const sh=document.getElementById('pref-start-home');
+  if(sh) sh.checked=localStorage.getItem('tm_map_pref-start-home')!=='false';
+  const gKeyInput=document.getElementById('gmap-key-input');
+  if(gKeyInput&&googleMapsKey) gKeyInput.value=googleMapsKey;
+}
+
+function refreshMap() {
+  wazeAlertMarkers.forEach(m=>tradieMap.removeLayer(m));
+  wazeAlertMarkers=[];
+  loadMapJobs();
+  if(wazeEnabled) loadWazeAlerts();
+  showToast('Map refreshed 🔄','success');
+}
+
+// ══ END MAPS MODULE — AMC Navigation NZ by Vex @ AMC inNOVAtions · NZ Edition 🇳🇿 ══
+
+</script>
+</body>
+</html>
