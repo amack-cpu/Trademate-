@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TradieMate — Brand Draft</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    /* AMC Gold Circuit palette */
+    --bg:        #0a0800;
+    --bg2:       #0f0c00;
+    --card:      #1a1500;
+    --card2:     #231c00;
+    --border:    #3a2e00;
+    --gold:      #d4a017;
+    --gold2:     #f0c040;
+    --gold3:     #fff3b0;
+    --orange:    #e8850a;
+    --muted:     #8a7a40;
+    --text:      #f5e8c0;
+    --text2:     #c8b880;
+    --green:     #4a9e5c;
+    --red:       #c0392b;
+    --radius:    12px;
+    --font:      'Georgia', serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── CIRCUIT BACKGROUND ─────────────────────── */
+  .circuit-bg {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .circuit-bg svg { width:100%; height:100%; opacity:0.07; }
+
+  /* ── SPLASH ─────────────────────────────────── */
+  .splash {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 32px 20px; text-align: center;
+  }
+
+  /* AMC Eye triangle — CSS drawn */
+  .amc-mark {
+    width: 120px; height: 104px; position: relative; margin-bottom: 28px;
+  }
+  .amc-triangle {
+    width: 0; height: 0;
+    border-left: 60px solid transparent;
+    border-right: 60px solid transparent;
+    border-bottom: 104px solid transparent;
+    position: absolute; top: 0; left: 0;
+    /* Gold outline triangle */
+    filter: drop-shadow(0 0 12px #d4a017aa);
+  }
+  .amc-triangle-svg {
+    width: 120px; height: 104px; position: absolute; top:0; left:0;
+  }
+  .amc-eye {
+    position: absolute;
+    top: 48px; left: 50%; transform: translateX(-50%);
+    width: 36px; height: 22px;
+  }
+  .amc-glow {
+    position: absolute; inset: -20px;
+    background: radial-gradient(ellipse at center, #d4a01740 0%, transparent 70%);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+
+  /* circuit lines radiating */
+  .circuit-lines {
+    position: absolute; width: 200px; height: 200px;
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    opacity: 0.3;
+  }
+
+  .brand-name {
+    font-size: 36px; font-weight: 900; letter-spacing: 2px;
+    background: linear-gradient(135deg, #c8960a, #f0c040, #fff3b0, #d4a017);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 16px #d4a01780);
+    margin-bottom: 4px;
+  }
+  .brand-name span {
+    font-weight: 300; letter-spacing: 6px; font-size: 13px;
+    background: linear-gradient(90deg, #8a7a40, #d4a017, #8a7a40);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .brand-tag {
+    font-size: 12px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase;
+    margin-bottom: 48px;
+  }
+
+  .amc-badge {
+    font-size: 10px; color: var(--muted); letter-spacing: 2px;
+    border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px;
+    margin-bottom: 48px;
+  }
+
+  /* ── TOPBAR ─────────────────────────────────── */
+  .topbar {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    background: linear-gradient(180deg, #0f0c00 0%, rgba(10,8,0,0) 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-logo {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 16px; font-weight: 900; letter-spacing: 1px;
+    background: linear-gradient(90deg, #c8960a, #f0c040);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .tier-badge {
+    font-size: 9px; background: var(--gold); color: #000;
+    padding: 2px 7px; border-radius: 4px; font-weight: 900;
+    letter-spacing: 1px; -webkit-text-fill-color: #000;
+  }
+
+  /* ── DASHBOARD ──────────────────────────────── */
+  .screen-wrap { position: relative; z-index: 1; padding: 16px; }
+
+  /* Gold stat cards */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-card {
+    background: linear-gradient(135deg, var(--card), var(--card2));
+    border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-value { font-size: 26px; font-weight: 900; color: var(--gold2); }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* Timer card */
+  .timer-card {
+    background: linear-gradient(135deg, #1a1500, #2a1f00);
+    border: 1px solid #5a4500;
+    border-radius: var(--radius); padding: 20px;
+    text-align: center; margin-bottom: 16px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 40px #d4a01718 inset;
+  }
+  .timer-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .timer-label { font-size: 10px; color: var(--muted); letter-spacing: 3px; margin-bottom: 8px; }
+  .timer-display {
+    font-size: 52px; font-weight: 900; font-family: monospace; letter-spacing: 4px;
+    background: linear-gradient(135deg, #c8960a, #f0c040, #fff3b0);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 20px #d4a01760);
+  }
+  .timer-btn {
+    margin-top: 16px; padding: 14px 40px; border-radius: 50px; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 800; letter-spacing: 2px;
+    background: linear-gradient(135deg, #b8860b, #d4a017, #f0c040);
+    color: #000; box-shadow: 0 4px 24px #d4a01750;
+    transition: all .2s;
+  }
+  .timer-btn:active { transform: scale(.97); }
+
+  /* Quick actions */
+  .qa-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+  .qa-btn {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    cursor: pointer; transition: all .2s;
+  }
+  .qa-btn:active { background: var(--card2); border-color: var(--gold); }
+  .qa-icon { font-size: 22px; }
+  .qa-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+
+  /* Section title */
+  .sec-title {
+    font-size: 11px; font-weight: 700; color: var(--gold);
+    letter-spacing: 3px; text-transform: uppercase;
+    margin-bottom: 12px; margin-top: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sec-title::after { content:''; flex:1; height:1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+  /* List item */
+  .list-item {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+    margin-bottom: 8px; position: relative; overflow: hidden;
+  }
+  .list-item::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--gold);
+  }
+
+  /* Nav */
+  .nav-bar {
+    position: relative; z-index: 10;
+    display: flex; background: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 4px 0 12px;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 0; cursor: pointer; border: none; background: none;
+    color: var(--muted); font-size: 10px; letter-spacing: 1px;
+    transition: color .2s;
+  }
+  .nav-item.active { color: var(--gold); }
+  .nav-icon { font-size: 20px; }
+
+  /* NZ badge */
+  .nz-badge {
+    background: linear-gradient(135deg, #000080, #002080);
+    border: 1px solid #0040ff;
+    border-radius: 6px; padding: 2px 8px;
+    font-size: 10px; font-weight: 800; color: #80aaff;
+    letter-spacing: 1px;
+  }
+
+  /* Section divider label */
+  .page-label {
+    font-size: 9px; color: var(--muted); letter-spacing: 4px;
+    text-align: center; padding: 12px 0; text-transform: uppercase;
+    border-bottom: 1px solid var(--border); margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Circuit background SVG -->
+<div class="circuit-bg">
+  <svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice">
+    <g stroke="#d4a017" stroke-width="0.5" fill="none">
+      <!-- horizontal circuit lines -->
+      <line x1="0" y1="80" x2="120" y2="80"/><circle cx="120" cy="80" r="3"/>
+      <line x1="120" y1="80" x2="120" y2="120"/><line x1="120" y1="120" x2="200" y2="120"/>
+      <line x1="280" y1="80" x2="400" y2="80"/><circle cx="280" cy="80" r="3"/>
+      <line x1="280" y1="80" x2="280" y2="160"/><line x1="280" y1="160" x2="400" y2="160"/>
+      <line x1="0" y1="240" x2="80" y2="240"/><circle cx="80" cy="240" r="3"/>
+      <line x1="80" y1="240" x2="80" y2="300"/><line x1="80" y1="300" x2="160" y2="300"/>
+      <line x1="320" y1="200" x2="400" y2="200"/>
+      <line x1="0" y1="400" x2="60" y2="400"/><circle cx="60" cy="400" r="3"/>
+      <line x1="60" y1="400" x2="60" y2="460"/><line x1="60" y1="460" x2="140" y2="460"/>
+      <line x1="340" y1="380" x2="400" y2="380"/><circle cx="340" cy="380" r="3"/>
+      <line x1="340" y1="380" x2="340" y2="440"/><line x1="340" y1="440" x2="260" y2="440"/>
+      <line x1="0" y1="560" x2="100" y2="560"/><circle cx="100" cy="560" r="3"/>
+      <line x1="100" y1="560" x2="100" y2="620"/><line x1="100" y1="620" x2="200" y2="620"/>
+      <line x1="300" y1="540" x2="400" y2="540"/>
+      <line x1="0" y1="700" x2="150" y2="700"/><circle cx="150" cy="700" r="3"/>
+      <line x1="250" y1="720" x2="400" y2="720"/><circle cx="250" cy="720" r="3"/>
+      <!-- small dots -->
+      <circle cx="200" cy="120" r="2"/><circle cx="160" cy="300" r="2"/>
+      <circle cx="140" cy="460" r="2"/><circle cx="260" cy="440" r="2"/>
+      <circle cx="200" cy="620" r="2"/>
+    </g>
+  </svg>
+</div>
+
+<!-- ══ PAGE 1: SPLASH ══════════════════════════════════ -->
+<div class="page-label">— SPLASH SCREEN —</div>
+
+<div class="splash" style="min-height:auto;padding:40px 20px">
+  <!-- AMC Eye Triangle mark -->
+  <div class="amc-mark" style="position:relative;width:100px;height:100px;margin-bottom:24px">
+    <div class="amc-glow"></div>
+    <svg width="100" height="100" viewBox="0 0 100 100">
+      <!-- outer glow triangle -->
+      <polygon points="50,6 94,88 6,88" stroke="#d4a017" stroke-width="2.5" fill="none"
+        filter="url(#glow)"/>
+      <!-- inner detail lines -->
+      <line x1="50" y1="20" x2="50" y2="75" stroke="#d4a017" stroke-width="0.5" opacity="0.4"/>
+      <line x1="30" y1="70" x2="70" y2="70" stroke="#d4a017" stroke-width="0.5" opacity="0.4"/>
+      <!-- circuit dots on corners -->
+      <circle cx="50" cy="6" r="3" fill="#f0c040"/>
+      <circle cx="94" cy="88" r="3" fill="#f0c040"/>
+      <circle cx="6" cy="88" r="3" fill="#f0c040"/>
+      <!-- the eye -->
+      <ellipse cx="50" cy="62" rx="16" ry="10" fill="#0a0800" stroke="#d4a017" stroke-width="1.5"/>
+      <circle cx="50" cy="62" r="6" fill="#1a1200"/>
+      <circle cx="50" cy="62" r="4" fill="#d4a017" opacity="0.9"/>
+      <circle cx="50" cy="62" r="2.5" fill="#000"/>
+      <circle cx="52" cy="60" r="0.8" fill="#fff" opacity="0.8"/>
+      <!-- circuit lines from corners -->
+      <line x1="50" y1="0" x2="50" y2="6" stroke="#d4a017" stroke-width="1" opacity="0.6"/>
+      <line x1="100" y1="88" x2="94" y2="88" stroke="#d4a017" stroke-width="1" opacity="0.6"/>
+      <line x1="0" y1="88" x2="6" y2="88" stroke="#d4a017" stroke-width="1" opacity="0.6"/>
+      <defs>
+        <filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+    </svg>
+  </div>
+
+  <div class="brand-name">TradieMate<br><span>BY AMC inNOVAtions</span></div>
+  <div class="brand-tag">Field intelligence · Built for the trades</div>
+
+  <div style="width:200px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin-bottom:24px"></div>
+
+  <button class="timer-btn" style="padding:16px 56px;font-size:16px">Get Started →</button>
+  <div style="margin-top:20px;font-size:11px;color:var(--muted)">Already have an account? Sign in</div>
+</div>
+
+<!-- ══ PAGE 2: HOME DASHBOARD ════════════════════════════ -->
+<div class="page-label">— HOME DASHBOARD —</div>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg width="22" height="20" viewBox="0 0 100 100">
+      <polygon points="50,4 96,90 4,90" stroke="#d4a017" stroke-width="3" fill="none"/>
+      <ellipse cx="50" cy="66" rx="14" ry="9" fill="#0a0800" stroke="#d4a017" stroke-width="2"/>
+      <circle cx="50" cy="66" r="5" fill="#d4a017"/>
+      <circle cx="50" cy="66" r="2.5" fill="#000"/>
+    </svg>
+    TradieMate
+    <span class="tier-badge">SOLO</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="font-size:20px;cursor:pointer">🌤</div>
+    <div style="font-size:20px;cursor:pointer">⚙️</div>
+  </div>
+</div>
+
+<div class="screen-wrap">
+  <!-- Greeting -->
+  <div style="margin-bottom:20px;padding-top:8px">
+    <div style="font-size:22px;font-weight:900;color:var(--text)">Good morning, Andy ☀️</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px">Thursday · 18 June · Sydney</div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">This Week</div>
+      <div class="stat-value">$2,480</div>
+      <div class="stat-sub">↑ 12% vs last week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Jobs Active</div>
+      <div class="stat-value">3</div>
+      <div class="stat-sub">2 invoiced · 1 pending</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Outstanding</div>
+      <div class="stat-value" style="color:var(--orange)">$840</div>
+      <div class="stat-sub">2 invoices overdue</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">BAS Due</div>
+      <div class="stat-value" style="font-size:18px;padding-top:4px">28 Jul</div>
+      <div class="stat-sub">$1,240 est. GST</div>
+    </div>
+  </div>
+
+  <!-- Timer card -->
+  <div class="timer-card">
+    <div class="timer-label">ACTIVE TIMER</div>
+    <div class="timer-display">02:34:17</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">Brendan Lee · Bathroom renovation</div>
+    <button class="timer-btn">⏹ Stop & Invoice</button>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="sec-title">Quick Actions</div>
+  <div class="qa-grid">
+    <div class="qa-btn"><div class="qa-icon">📋</div><div class="qa-label">Quote</div></div>
+    <div class="qa-btn"><div class="qa-icon">🧾</div><div class="qa-label">Invoice</div></div>
+    <div class="qa-btn"><div class="qa-icon">💸</div><div class="qa-label">Expense</div></div>
+    <div class="qa-btn"><div class="qa-icon">🤖</div><div class="qa-label">AI</div></div>
+  </div>
+
+  <!-- Recent jobs -->
+  <div class="sec-title">Recent Jobs</div>
+  <div class="list-item">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text)">Sarah Mitchell</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Kitchen reno · 4.5hrs · Invoiced</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:800;color:var(--gold2)">$720</div>
+        <div style="font-size:10px;color:var(--green);margin-top:2px">● PAID</div>
+      </div>
+    </div>
+  </div>
+  <div class="list-item">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text)">James Thornton</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Deck build · 8hrs · Pending</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:800;color:var(--gold2)">$1,280</div>
+        <div style="font-size:10px;color:var(--orange);margin-top:2px">● OVERDUE</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav-bar">
+  <button class="nav-item active"><span class="nav-icon">🏠</span>Home</button>
+  <button class="nav-item"><span class="nav-icon">⏱</span>Jobs</button>
+  <button class="nav-item"><span class="nav-icon">🧾</span>Invoices</button>
+  <button class="nav-item"><span class="nav-icon">📊</span>BAS</button>
+  <button class="nav-item"><span class="nav-icon">🗺</span>Maps</button>
+  <button class="nav-item"><span class="nav-icon">🤖</span>AI</button>
+</div>
+
+<!-- ══ PAGE 3: NZ VARIANT ════════════════════════════════ -->
+<div class="page-label" style="margin-top:40px">— NZ TIER VARIANT (same theme, NZ colours) —</div>
+
+<div class="topbar" style="background:linear-gradient(180deg,#000814,rgba(0,8,20,0))">
+  <div class="topbar-logo">
+    <svg width="22" height="20" viewBox="0 0 100 100">
+      <polygon points="50,4 96,90 4,90" stroke="#d4a017" stroke-width="3" fill="none"/>
+      <ellipse cx="50" cy="66" rx="14" ry="9" fill="#000814" stroke="#d4a017" stroke-width="2"/>
+      <circle cx="50" cy="66" r="5" fill="#d4a017"/>
+      <circle cx="50" cy="66" r="2.5" fill="#000"/>
+    </svg>
+    TradieMate
+    <span class="tier-badge" style="background:#003090;color:#80aaff">NZ</span>
+  </div>
+  <div style="font-size:12px;color:#4466cc;letter-spacing:1px">NZ$ · GST 15%</div>
+</div>
+
+<div class="screen-wrap" style="background:linear-gradient(180deg,#000814,var(--bg))">
+  <div style="margin-bottom:20px;padding-top:8px">
+    <div style="font-size:22px;font-weight:900;color:var(--text)">Good morning, Laura 🌿</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px">Thursday · 18 June · Auckland</div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card" style="border-color:#002060">
+      <div class="stat-label">This Week</div>
+      <div class="stat-value">NZ$3,120</div>
+      <div class="stat-sub">4 jobs completed</div>
+    </div>
+    <div class="stat-card" style="border-color:#002060">
+      <div class="stat-label">KiwiSaver Due</div>
+      <div class="stat-value" style="font-size:18px;color:#80aaff">$187</div>
+      <div class="stat-sub">3% · 4 workers</div>
+    </div>
+  </div>
+
+  <div style="background:linear-gradient(135deg,#000c24,#001840);border:1px solid #002060;border-radius:var(--radius);padding:16px;margin-bottom:16px">
+    <div style="font-size:10px;color:#4466cc;letter-spacing:2px;margin-bottom:8px">CREW STATUS · NZ</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:13px;color:var(--text)">Laura (hub)</span>
+      <span style="font-size:12px;color:var(--green)">● Hub active</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:13px;color:var(--text)">Jake · Satellite</span>
+      <span style="font-size:12px;color:var(--green)">● On clock 3h12m</span>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <span style="font-size:13px;color:var(--muted)">Sarah · Satellite</span>
+      <span style="font-size:12px;color:var(--muted)">⚪ Off clock</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ COLOUR PALETTE ══════════════════════════════════════ -->
+<div class="page-label" style="margin-top:40px">— BRAND PALETTE —</div>
+<div style="padding:20px;position:relative;z-index:1">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+    <div style="background:#d4a017;border-radius:8px;aspect-ratio:1;display:flex;align-items:flex-end;padding:6px">
+      <div style="font-size:9px;color:#000;font-weight:700">GOLD PRIMARY<br>#d4a017</div>
+    </div>
+    <div style="background:#f0c040;border-radius:8px;aspect-ratio:1;display:flex;align-items:flex-end;padding:6px">
+      <div style="font-size:9px;color:#000;font-weight:700">GOLD LIGHT<br>#f0c040</div>
+    </div>
+    <div style="background:#0a0800;border:1px solid #3a2e00;border-radius:8px;aspect-ratio:1;display:flex;align-items:flex-end;padding:6px">
+      <div style="font-size:9px;color:#8a7a40;font-weight:700">BG DARK<br>#0a0800</div>
+    </div>
+    <div style="background:#1a1500;border:1px solid #3a2e00;border-radius:8px;aspect-ratio:1;display:flex;align-items:flex-end;padding:6px">
+      <div style="font-size:9px;color:#8a7a40;font-weight:700">CARD<br>#1a1500</div>
+    </div>
+    <div style="background:#e8850a;border-radius:8px;aspect-ratio:1;display:flex;align-items:flex-end;padding:6px">
+      <div style="font-size:9px;color:#000;font-weight:700">ACCENT<br>#e8850a</div>
+    </div>
+    <div style="background:#4a9e5c;border-radius:8px;aspect-ratio:1;display:flex;align-items:flex-end;padding:6px">
+      <div style="font-size:9px;color:#000;font-weight:700">SUCCESS<br>#4a9e5c</div>
+    </div>
+    <div style="background:#8a7a40;border-radius:8px;aspect-ratio:1;display:flex;align-items:flex-end;padding:6px">
+      <div style="font-size:9px;color:#000;font-weight:700">MUTED<br>#8a7a40</div>
+    </div>
+    <div style="background:#f5e8c0;border-radius:8px;aspect-ratio:1;display:flex;align-items:flex-end;padding:6px">
+      <div style="font-size:9px;color:#000;font-weight:700">TEXT<br>#f5e8c0</div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);line-height:1.8">
+    <b style="color:var(--gold)">Rationale:</b> Deep obsidian black with gold circuit palette.<br>
+    Warm enough to feel premium, dark enough to be readable in full sun on site.<br>
+    The AMC triangle mark scales from 16px favicon to full splash hero.<br>
+    NZ variant shifts the accent to navy/blue — same gold structure, different territory colour.
+  </div>
+</div>
+
+<div style="height:60px"></div>
+
+</body>
+</html>
