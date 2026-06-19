@@ -370,8 +370,42 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:40px 24
 <div class="modal-overlay" id="checkout-modal">
   <div class="modal">
     <button class="modal-close" onclick="closeCheckout()">✕</button>
-    <h2>🔧 Get TradieMate Solo</h2>
-    <p>$399 setup fee · 2 months free · then $99/month. Installs on your phone. Cancel anytime.</p>
+    <h2>🔧 Get TradieMate</h2>
+
+    <!-- Tier selector -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:14px">
+      <div class="tier-opt" data-tier="lite" onclick="selectTier('lite')"
+        style="cursor:pointer;border:1px solid #333;border-radius:8px;padding:8px 4px;text-align:center;font-size:11px">
+        <div style="font-weight:800;font-size:12px">Lite</div>
+        <div style="color:#c8920e;font-weight:700">$25<span style="font-size:9px">/mo</span></div>
+        <div style="color:#555;font-size:9px">+$120 setup</div>
+      </div>
+      <div class="tier-opt active" data-tier="solo" onclick="selectTier('solo')"
+        style="cursor:pointer;border:2px solid #c8920e;border-radius:8px;padding:8px 4px;text-align:center;font-size:11px;background:rgba(200,146,14,.08)">
+        <div style="font-weight:800;font-size:12px">Solo ⭐</div>
+        <div style="color:#c8920e;font-weight:700">$99<span style="font-size:9px">/mo</span></div>
+        <div style="color:#555;font-size:9px">+$399 setup</div>
+      </div>
+      <div class="tier-opt" data-tier="crew" onclick="selectTier('crew')"
+        style="cursor:pointer;border:1px solid #333;border-radius:8px;padding:8px 4px;text-align:center;font-size:11px">
+        <div style="font-weight:800;font-size:12px">Crew</div>
+        <div style="color:#c8920e;font-weight:700">$199<span style="font-size:9px">/mo</span></div>
+        <div style="color:#555;font-size:9px">+$199 setup</div>
+      </div>
+      <div class="tier-opt" data-tier="company" onclick="selectTier('company')"
+        style="cursor:pointer;border:1px solid #333;border-radius:8px;padding:8px 4px;text-align:center;font-size:11px">
+        <div style="font-weight:800;font-size:12px">Company</div>
+        <div style="color:#c8920e;font-weight:700">$399<span style="font-size:9px">/mo</span></div>
+        <div style="color:#555;font-size:9px">+$399 setup</div>
+      </div>
+    </div>
+    <div id="checkout-price-summary" style="font-size:12px;color:#888;margin-bottom:14px;padding:8px 10px;background:rgba(200,146,14,.06);border-radius:6px;border:1px solid rgba(200,146,14,.2)">
+      ⭐ <b style="color:#c8920e">Solo — $399 setup</b> + <b style="color:#c8920e">$99/mo</b> · Full suite: AI advisor, GPS, BAS, voice · Cancel anytime
+    </div>
+    <style>
+      .tier-opt.active { border-color:#c8920e !important; background:rgba(200,146,14,.1) !important; }
+      .tier-opt:hover  { border-color:#a07010 !important; }
+    </style>
     <div class="form-group"><label class="form-label">Your Name</label><input class="form-input" id="co-name" placeholder="John Smith"></div>
     <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="co-email" placeholder="you@email.com" type="email"></div>
     <div class="form-group"><label class="form-label">Trade Type</label>
@@ -387,7 +421,34 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:40px 24
 </div>
 
 <script>
-function openCheckout(){document.getElementById('checkout-modal').classList.add('open');}
+// ── Tier pricing ──────────────────────────────────────────
+const TIER_PRICES = {
+  lite:    { setup:'price_1Tk2K95r1lbOPTl3aQCOQKjo', sub:'price_1Tk2K95r1lbOPTl39CY9plI8',  setupAmt:120, subAmt:25,  label:'Lite',    desc:'Timer, invoicing, basic maps' },
+  solo:    { setup:'price_1TiVGm5r1lbOPTl3efaCJDdU', sub:'price_1TiVGl5r1lbOPTl3TiYUNPsh', setupAmt:399, subAmt:99,  label:'Solo',    desc:'Full suite — AI, GPS, BAS, voice' },
+  crew:    { setup:'price_1Tk2KA5r1lbOPTl3SNaBvtKO', sub:'price_1Tk2KA5r1lbOPTl3qMJn9kcs',  setupAmt:199, subAmt:199, label:'Crew',    desc:'Boss + up to 3 staff, payroll, live GPS map' },
+  company: { setup:'price_1Tk2KB5r1lbOPTl37xGyTZoD', sub:'price_1Tk2KB5r1lbOPTl33YbapPSG',  setupAmt:399, subAmt:399, label:'Company', desc:'Boss + 4+ staff, multi-site, advanced reporting' },
+};
+let selectedTier = 'solo';
+
+function selectTier(tier) {
+  selectedTier = tier;
+  document.querySelectorAll('.tier-opt').forEach(b => {
+    const active = b.dataset.tier === tier;
+    b.classList.toggle('active', active);
+    b.style.background   = active ? 'rgba(200,146,14,.12)' : '';
+    b.style.borderWidth  = active ? '2px' : '1px';
+    b.style.borderColor  = active ? '#c8920e' : '#333';
+  });
+  const t = TIER_PRICES[tier];
+  const icons = {lite:'🔧', solo:'⭐', crew:'👷', company:'🏢'};
+  const el = document.getElementById('checkout-price-summary');
+  if (el) el.innerHTML = `${icons[tier]} <b style="color:#c8920e">${t.label} — $${t.setupAmt} setup</b> + <b style="color:#c8920e">$${t.subAmt}/mo</b> &nbsp;·&nbsp; ${t.desc} &nbsp;·&nbsp; Cancel anytime`;
+}
+
+function openCheckout(){
+  document.getElementById('checkout-modal').classList.add('open');
+  selectTier('solo');
+}
 function closeCheckout(){document.getElementById('checkout-modal').classList.remove('open');}
 document.getElementById('checkout-modal').addEventListener('click',function(e){if(e.target===this)closeCheckout();});
 
@@ -404,9 +465,9 @@ async function startCheckout(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         name, email, trade,
-        priceId:'price_1TiVGl5r1lbOPTl3TiYUNPsh',
-        setupPriceId:'price_1TiVGm5r1lbOPTl3efaCJDdU',
-        successUrl: window.location.origin + '/tradiemate_solo_pwa/index.html?trial=false&email='+encodeURIComponent(email),
+        priceId: TIER_PRICES[selectedTier].sub,
+        setupPriceId: TIER_PRICES[selectedTier].setup,
+        successUrl: window.location.origin + (selectedTier==='lite' ? '/tradiemate_lite.html' : selectedTier==='crew' ? '/tradiemate_crew/index.html' : '/tradiemate_solo_pwa/index.html') + '?trial=false&email='+encodeURIComponent(email),
         cancelUrl: window.location.href
       })
     });
